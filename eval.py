@@ -11,7 +11,7 @@ import codecs
 import tensorflow as tf
 import numpy as np
 from data import *
-from train import Graph
+from train import *
 import copy
 from scipy.io.wavfile import write
 
@@ -51,11 +51,11 @@ def eval():
             sv.saver.restore(sess, tf.train.latest_checkpoint(hp.logdir))
             print("Restored!")
             mname = open('asset/train/checkpoint', 'r').read().split('"')[1] # model name
-            
+             
             # Load data
             texts, sound_files = load_eval_data()
             char2idx, idx2char = load_vocab()
-             
+              
             timesteps = 155
             outputs_shifted = np.zeros((hp.batch_size, timesteps, hp.n_mels*hp.r), np.int32)
             outputs = np.zeros((hp.batch_size, timesteps, hp.n_mels*hp.r), np.float32)   # hp.n_mels*hp.r  
@@ -66,20 +66,37 @@ def eval():
                 if j < timesteps - 1:
                     outputs_shifted[:, j + 1] = _outputs[:, j, :]
                 outputs[:, j, :] = _outputs[:, j, :]
-            
+             
             outputs2, loss, x = sess.run([g.outputs2, g.loss, g.x], {g.outputs1: outputs})
             t1 = "".join(idx2char[tt] for tt in x[0])
             t2 = "".join(idx2char[tt] for tt in x[1])
             print("="*100, t1, "|", t2)
             spectrograms = restore_shape(outputs2)
             print("loss=", loss)
-    
+     
     for i, (t, f) in enumerate(zip(texts, spectrograms)):
         audio = spectrogram2wav(f)
         t_ = np.fromstring(t, np.int32)
         write("samples/{}.wav".format(i), hp.sr, audio)                                       
 if __name__ == '__main__':
     eval()
+#     # Load data
+#     texts, sound_files = load_eval_data()
+#     char2idx, idx2char = load_vocab()
+#     
+#     g = Graph(is_training=False)
+#     with g.graph.as_default():    
+#         sv = tf.train.Supervisor()
+#         with sv.managed_session() as sess:
+#             z = sess.run(g.z)
+#             spectrograms = restore_shape(z)
+#             for i, (t, s) in enumerate(zip(texts, spectrograms)):
+#                 t_ = np.fromstring(t, np.int32)
+#                 t1 = "".join(idx2char[tt] for tt in t_)
+#                 print(t1)
+#                 audio = spectrogram2wav(s)
+#                 write("samples/{}.wav".format(i), hp.sr, audio)     
+    
     print("Done")
     
     

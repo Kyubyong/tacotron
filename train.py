@@ -2,7 +2,7 @@
 #/usr/bin/python2
 '''
 By kyubyong park. kbpark.linguist@gmail.com. 
-https://www.github.com/kyubyong
+https://www.github.com/kyubyong/tacotron
 '''
 from __future__ import print_function
 from functools import wraps
@@ -15,9 +15,11 @@ import os
 from tqdm import tqdm
 from hyperparams import Hyperparams as hp
 from data import *
-from networks import _encode, _decode1, _decode2
+from networks import encode, decode1, decode2
 from modules import *
 
+# Borrowed from the `sugartensor` code.
+# https://github.com/buriburisuri/sugartensor/blob/master/sugartensor/sg_queue.py
 def producer_func(func):
     r"""Decorates a function `func` as sg_producer_func.
 
@@ -35,7 +37,6 @@ def producer_func(func):
             capacity: Queue capacity. Default is 32.
             num_threads: Number of threads. Default is 1.
         """
-
         # enqueue function
         def enqueue_func(sess, op):
             # read data from source queue
@@ -121,21 +122,19 @@ class _FuncQueueRunner(tf.train.QueueRunner):
                     self._runs_per_session[sess] -= 1
                     
 def get_spectrograms(sound_file): 
-    '''Gets melspectrogram and magnitude from given `sound_file`.
+    '''Extracts melspectrogram and magnitude from given `sound_file`.
     Args:
       sound_file: A string. Full path of a sound file.
 
     Returns:
       Transposed S: A 2d array. A transposed melspectrogram with shape of (t, n_mels)
       Transposed magnitude: A 2d array. A transposed magnitude spectrogram 
-        with shape of (t, n_mels)
+        with shape of (t, 1+hp.n_fft/2)
     '''
-#     sound = AudioSegment.from_mp3(sound_file)
-#     sound.export("temp.wav", format="wav")
     # Loading sound file
     y, sr = librosa.load(sound_file, sr=hp.sr)
     
-    # stft. D: (1+n_fft/2, t)
+    # stft. D: (1+n_fft//2, t)
     D = librosa.stft(y=y,
                      n_fft=hp.n_fft, 
                      hop_length=hp.hop_length, 
@@ -150,6 +149,7 @@ def get_spectrograms(sound_file):
     return np.transpose(S.astype(np.float32)), np.transpose(magnitude.astype(np.float32)) # (t, n_mels), (t, 1+n_fft/2)
 
 def get_batch(is_training=True):
+    print("is training of get_batch", is_training)
     with tf.device('cpu:0'):
         # Load data
         if is_training:
@@ -166,7 +166,9 @@ def get_batch(is_training=True):
          
         # Create Queues
         text, sound_file = tf.train.slice_input_producer([texts, sound_files], 
-                                                         shuffle=is_training==True)
+                                                         shuffle=is_training)
+        
+
         @producer_func
         def get_text_and_spectrograms(_sources):
             _text, _sound_file = _sources
@@ -187,7 +189,7 @@ def get_batch(is_training=True):
                                             num_threads=32)
         # create batch queues
         x, y, z= tf.train.batch([x, y, z],
-                                shapes=[(None,), (None, hp.n_mels*hp.r), (None, (1+hp.n_fft/2)*hp.r)],
+                                shapes=[(None,), (None, hp.n_mels*hp.r), (None, (1+hp.n_fft//2)*hp.r)],
                                 num_threads=32,
                                 batch_size=hp.batch_size, 
                                 capacity=hp.batch_size*32,   
@@ -229,11 +231,11 @@ class Graph:
             self.decoder_inputs = shift_by_one(self.y)
              
             # Encoder
-            self.memory = _encode(self.x)
+            self.memory = encode(self.x, is_training=is_training)
              
             # Decoder
-            self.outputs1 = _decode1(self.decoder_inputs, self.memory)#, hp.n_mels, 1+hp.n_fft/2)
-            self.outputs2 = _decode2(self.outputs1)#, hp.n_mels, 1+hp.n_fft/2)
+            self.outputs1 = decode1(self.decoder_inputs, self.memory)#, hp.n_mels, 1+hp.n_fft/2)
+            self.outputs2 = decode2(self.outputs1, is_training=is_training)#, hp.n_mels, 1+hp.n_fft/2)
              
             # L1 loss
             self.loss = tf.reduce_mean(tf.abs(self.outputs1 - self.y)) +\
@@ -258,7 +260,7 @@ def main():
         char2idx, idx2char = load_vocab()
          
         sv = tf.train.Supervisor(logdir=hp.logdir,
-                                 save_model_secs=1800)
+                                 save_model_secs=0)
         with sv.managed_session() as sess:
             # Training
             for epoch in range(1, hp.num_epochs+1): 

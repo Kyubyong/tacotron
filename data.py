@@ -49,10 +49,11 @@ def load_eval_data():
 if __name__ == '__main__':
     # Load vocabulary
     char2idx, idx2char = load_vocab() 
-    texts, sound_files = load_train_data()
-    print(np.fromstring(texts[0], np.int32))
-    print("".join(idx2char[idx] for idx in np.fromstring(texts[0], np.int32)))
-    print(sound_files[0])
+    texts, sound_files = load_eval_data()
+    for i in range(len(texts)):
+#         print(np.fromstring(texts[i], np.int32))
+        print("".join(idx2char[idx] for idx in np.fromstring(texts[i], np.int32)))
+        print(sound_files[i])
 #     for i in range(len(texts)):
 #         print(sound_files[i])
 #         print(texts[i])

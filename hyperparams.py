@@ -2,7 +2,6 @@ class Hyperparams:
     '''Hyper parameters'''
     # data
     text_file = 'WEB/text.txt'
-#     sound_fpath = '/mnt/datasets/bible/'
     sound_fpath = 'WEB/'
     max_len = 150 # maximum length of text
     max_duration = 10.0 # maximum duration of a sound file. seconds.
@@ -19,10 +18,10 @@ class Hyperparams:
     n_iter = 30 # Number of inversion iterations 
     
     # model
-    embed_size = 256 #256
-    encoder_num_banks = 16#16
-    decoder_num_banks = 8#8
-    num_highwaynet_blocks = 4#4
+    embed_size = 256
+    encoder_num_banks = 16
+    decoder_num_banks = 8
+    num_highwaynet_blocks = 4
     r = 5 # Reduction factor
     
     # training scheme
@@ -31,8 +30,3 @@ class Hyperparams:
     save_path = 'asset/train/model.ckpt'
     batch_size = 16
     num_epochs = 10
-    
-#     starter_lr = 0.01
-#     decay_steps = 5000
-#     decay_rate = 0.96
-    

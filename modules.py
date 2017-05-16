@@ -7,7 +7,7 @@ https://www.github.com/kyubyong
 
 from __future__ import print_function
 import tensorflow as tf
-from hyperparams import Hyperparams as HP
+from hyperparams import Hyperparams as hp
 
 def embed(inputs, vocab_size, embed_size, variable_scope="embed"):
     '''
@@ -18,7 +18,7 @@ def embed(inputs, vocab_size, embed_size, variable_scope="embed"):
         lookup_table = tf.get_variable('lookup_table', 
                                        dtype=tf.float32, 
                                        shape=[vocab_size, embed_size],
-                                       initializer=tf.truncated_normal_initializer())
+                                       initializer=tf.truncated_normal_initializer(mean=0.0, stddev=0.01))
     return tf.nn.embedding_lookup(lookup_table, inputs)
  
 def batch_normalize(inputs, is_training=True, variable_scope="bn"):
@@ -78,10 +78,10 @@ def conv1d_banks(inputs, K=16, is_training=True, variable_scope="conv1d_banks"):
       A 3d tensor with shape of [N, T, K*Hp.embed_size//2].
     '''
     with tf.variable_scope(variable_scope):
-        outputs = conv1d(inputs, 1, HP.embed_size//2, is_training=is_training) # k=1
+        outputs = conv1d(inputs, 1, hp.embed_size//2, is_training=is_training) # k=1
         for k in range(2, K+1): # k = 2...K
             with tf.variable_scope("num_{}".format(k)):
-                output = conv1d(inputs, k, HP.embed_size//2, is_training=is_training)
+                output = conv1d(inputs, k, hp.embed_size//2, is_training=is_training)
                 outputs = tf.concat((outputs, output), -1)
     return outputs # (N, T, 128*K)
 
@@ -122,26 +122,43 @@ def attention_decoder(inputs, num_units, memory, variable_scope="attention_decod
         outputs, _ = tf.nn.dynamic_rnn(cell_with_attetion, inputs, dtype=tf.float32) #( 1, 6, 16)
     return outputs
 
-def prenet(inputs, variable_scope="prenet"):
+def dense(inputs, units, bn=True, act=None, is_training=True, variable_scope="dense"):
+    with tf.variable_scope(variable_scope):
+        inputs = tf.contrib.layers.fully_connected(inputs, units)
+        inputs = batch_normalize(inputs, is_training=is_training)
+        if act == "relu":
+            inputs = tf.nn.relu(inputs)
+        elif act == "sigmoid":
+            inputs = tf.nn.sigmoid(inputs)
+    return inputs
+    
+    
+def prenet(inputs, is_training=True, variable_scope="prenet"):
     '''Prenet for Encoder and Decoder.
     Args:
-      inputs: A 3D tensor of shape [N, T, HP.embed_size].
+      inputs: A 3D tensor of shape [N, T, hp.embed_size].
     
     Returns:
-      A 3D tensor of shape [N, T, HP.embed_size//2].
+      A 3D tensor of shape [N, T, hp.embed_size//2].
     '''
     with tf.variable_scope(variable_scope):
-        outputs = tf.contrib.layers.fully_connected(inputs, HP.embed_size, tf.nn.relu)
+        outputs = dense(inputs, hp.embed_size, act="relu", 
+                        is_training=is_training, variable_scope="dense1")
         outputs = tf.nn.dropout(outputs, .5)
-        outputs = tf.contrib.layers.fully_connected(outputs, HP.embed_size//2, tf.nn.relu)
+        outputs = dense(inputs, hp.embed_size//2, act="relu", 
+                        is_training=is_training, variable_scope="dense2")
         outputs = tf.nn.dropout(outputs, .5) 
     return outputs # (N, T, 128)
     
-def highwaynet(inputs, variable_scope="highwaynet"):
+def highwaynet(inputs, is_training=True, variable_scope="highwaynet"):
     '''Refer to https://arxiv.org/abs/1505.00387'''
     with tf.variable_scope(variable_scope):
-        H = tf.contrib.layers.fully_connected(inputs, HP.embed_size, activation_fn=tf.nn.relu)
-        T = tf.contrib.layers.fully_connected(inputs, HP.embed_size, activation_fn=tf.nn.sigmoid)
+        H = dense(inputs, hp.embed_size, act="relu", 
+                  is_training=is_training, variable_scope="dense1")
+#         H = tf.contrib.layers.fully_connected(inputs, hp.embed_size, activation_fn=tf.nn.relu)
+#         T = tf.contrib.layers.fully_connected(inputs, hp.embed_size, activation_fn=tf.nn.sigmoid)
+        T = dense(inputs, hp.embed_size, act="sigmoid", 
+                  is_training=is_training, variable_scope="dense2")
         C = 1. - T
         outputs = H * T + inputs * C
     return outputs
