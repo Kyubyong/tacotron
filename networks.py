@@ -24,24 +24,24 @@ def encode(x, is_training=True):
         inputs = embed(x, len(char2idx), hp.embed_size) # (N, T, 256)  
 
         # Encoder pre-net
-        enc = prenet(inputs, is_training=is_training) # (N, T, 128)
+        prenet_out = prenet(inputs, is_training=is_training) # (N, T, 128)
           
         # Encoder CBHG 
         ## Conv1D bank 
-        enc = conv1d_banks(enc, K=hp.encoder_num_banks, is_training=is_training) # (N, T, 2048=K * hp.embed_size // 2)
+        enc = conv1d_banks(prenet_out, K=hp.encoder_num_banks, is_training=is_training) # (N, T, 2048=K * hp.embed_size // 2)
           
         ### Max pooling
         enc = tf.layers.max_pooling1d(enc, 2, 1, padding="same")  # (N, T, 2048)
           
         ### Conv1D projections
-        enc = conv1d(enc, 3, hp.embed_size, is_training=is_training, variable_scope="conv1d_1") # (N, T, 256)
-        enc = conv1d(enc, 3, hp.embed_size, bn=False, act=False, variable_scope="conv1d_2") # (N, T, 256)
-        enc += inputs # (N, T, 256) # residual connections
+        enc = conv1d(enc, 3, hp.embed_size // 2, is_training=is_training, variable_scope="conv1d_1") # (N, T, 128)
+        enc = conv1d(enc, 3, hp.embed_size // 2, bn=False, act=False, variable_scope="conv1d_2") # (N, T, 128)
+        enc += prenet_out # (N, T, 128) # residual connections
           
         ### Highway Nets
         for i in range(hp.num_highwaynet_blocks):
             with tf.variable_scope('num_{}'.format(i)):
-                enc = highwaynet(enc, is_training=is_training) # # (N, T, 256)
+                enc = highwaynet(enc, is_training=is_training) # (N, T, 128)
           
         ### Bidirectional GRU
         memory = gru(enc, hp.embed_size//2, True) # (N, T, 128*2)
