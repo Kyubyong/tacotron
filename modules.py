@@ -150,17 +150,24 @@ def prenet(inputs, is_training=True, variable_scope="prenet"):
         outputs = tf.nn.dropout(outputs, .5) 
     return outputs # (N, T, 128)
     
-def highwaynet(inputs, is_training=True, variable_scope="highwaynet"):
-    '''Refer to https://arxiv.org/abs/1505.00387'''
+def highwaynet(inputs, units=None, is_training=True, variable_scope="highwaynet"):
+    '''Highway networks, see https://arxiv.org/abs/1505.00387
+
+    Args:
+      inputs: A 3D tensor of shape [N, T, W].
+      units: An int or `None`. Specifies the number of units in the highway layer
+             or uses the input size if `None`.
+
+    Returns:
+      A 3D tensor of shape [N, T, W].
+    '''
+    if not units:
+        units = inputs.get_shape()[-1]
     with tf.variable_scope(variable_scope):
-        H = dense(inputs, hp.embed_size, act="relu", 
-                  is_training=is_training, variable_scope="dense1")
-#         H = tf.contrib.layers.fully_connected(inputs, hp.embed_size, activation_fn=tf.nn.relu)
-#         T = tf.contrib.layers.fully_connected(inputs, hp.embed_size, activation_fn=tf.nn.sigmoid)
-        T = dense(inputs, hp.embed_size, act="sigmoid", 
-                  is_training=is_training, variable_scope="dense2")
+        H = tf.layers.dense(inputs, units=units, activation=tf.nn.relu,
+                  trainable=is_training, name="dense1")
+        T = tf.layers.dense(inputs, units=units, activation=tf.nn.sigmoid,
+                  trainable=is_training, name="dense2")
         C = 1. - T
         outputs = H * T + inputs * C
     return outputs
-  
-    
