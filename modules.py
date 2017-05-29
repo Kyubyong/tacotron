@@ -145,7 +145,7 @@ def prenet(inputs, is_training=True, variable_scope="prenet"):
         outputs = dense(inputs, hp.embed_size, act="relu", 
                         is_training=is_training, variable_scope="dense1")
         outputs = tf.nn.dropout(outputs, .5)
-        outputs = dense(inputs, hp.embed_size//2, act="relu", 
+        outputs = dense(outputs, hp.embed_size//2, act="relu",
                         is_training=is_training, variable_scope="dense2")
         outputs = tf.nn.dropout(outputs, .5) 
     return outputs # (N, T, 128)
