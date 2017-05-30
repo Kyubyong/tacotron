@@ -6,7 +6,7 @@ As of May 17, 2017, this is still a first draft. You can run it following the st
 
 ## Requirements
   * NumPy >= 1.11.1
-  * TensorFlow >= 1.0
+  * TensorFlow >= 1.1
   * librosa
 
 ## Data
