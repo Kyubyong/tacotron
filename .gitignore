@@ -1,0 +1,9 @@
+etc/
+asset/
+data/
+corpora/
+logdir/
+samples/
+*.pyc
+_*
+*~
