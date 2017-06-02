@@ -1,8 +1,9 @@
 # A (Heavily Documented) TensorFlow Implementation of Tacotron: A Fully End-to-End Text-To-Speech Synthesis Model
 
-## **Warning**
-  * As of June 1, 2017, this is a second draft. I corrected some mistakes with the help of several contributors (THANKS!), and re-factored source codes so that they are more readable and modular. So far, I couldn't get any promising results.
-  * As of May 17, 2017, this is still a first draft. You can run it following the steps below, but probably you should get poor results. I'll be working on debugging this weekend. (**Code reviews and/or contributions are more than welcome!**)
+## **Major History**
+  * June 2, 2017. Added `train_multiple_gpus.py` for multiple gpus.
+  * June 1, 2017. Second draft. I corrected some mistakes with the help of several contributors (THANKS!), and re-factored source codes so that they are more readable and modular. So far, I couldn't get any promising results.
+  * May 17, 2017. First draft. You can run it following the steps below, but probably you should get poor results. I'll be working on debugging this weekend. (**Code reviews and/or contributions are more than welcome!**)
 
 ## Requirements
   * NumPy >= 1.11.1
@@ -29,8 +30,7 @@ Since the [original paper](https://arxiv.org/abs/1703.10135) was based on their 
 ## Training
   * STEP 1. Adjust hyper parameters in `hyperparams.py` if necessary.
   * STEP 2. Download and extract [the audio data](https://dl.dropboxusercontent.com/u/42868014/WEB.zip) and its [text](https://dl.dropboxusercontent.com/u/42868014/text.csv).
-  * STEP 3. Run `train.py`.
-
+  * STEP 3. Run `train.py`. or `train_multiple_gpus.py` if you have more than one gpu.
 
 ## Sample Synthesis
   * Run `eval.py` to get samples.
