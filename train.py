@@ -26,49 +26,48 @@ class Graph:
         self.graph = tf.Graph()
         
         with self.graph.as_default():
-            with tf.device('/cpu:0'):
-                if is_training:
-                    self.x, self.y, self.z, self.num_batch = get_batch()
-                    self.decoder_inputs = shift_by_one(self.y)
-                else: # Evaluation
-                    self.x = tf.placeholder(tf.int32, shape=(None, None))
-                    self.decoder_inputs = tf.placeholder(tf.float32, shape=(None, None, hp.n_mels*hp.r))
-    
-                # Encoder
-                self.memory = encode(self.x, is_training=is_training) # (N, T, E)
-                 
-                # Decoder
-                self.outputs1 = decode1(self.decoder_inputs, self.memory) # (N, T', hp.n_mels*hp.r)
-                self.outputs2 = decode2(self.outputs1, is_training=is_training) # (N, T', (1+hp.n_fft//2)*hp.r)
-                 
-                if is_training:  
-                    # Loss
-                    if hp.loss_type=="l1": # L1 loss
-                        self.loss1 = tf.abs(self.outputs1 - self.y)
-                        self.loss2 = tf.abs(self.outputs2 - self.z)
-                    else: # L2 loss
-                        self.loss1 = tf.squared_difference(self.outputs1, self.y)
-                        self.loss2 = tf.squared_difference(self.outputs2, self.z)
-                    
-                    # Target masking
-                    if hp.target_zeros_masking:
-                        self.loss1 *= tf.to_float(tf.not_equal(self.y, 0.))
-                        self.loss2 *= tf.to_float(tf.not_equal(self.z, 0.))
-                    
-                    self.mean_loss1 = tf.reduce_mean(self.loss1)
-                    self.mean_loss2 = tf.reduce_mean(self.loss2)
-                    self.mean_loss = self.mean_loss1 + self.mean_loss2    
+            if is_training:
+                self.x, self.y, self.z, self.num_batch = get_batch()
+                self.decoder_inputs = shift_by_one(self.y)
+            else: # Evaluation
+                self.x = tf.placeholder(tf.int32, shape=(None, None))
+                self.decoder_inputs = tf.placeholder(tf.float32, shape=(None, None, hp.n_mels*hp.r))
+
+            # Encoder
+            self.memory = encode(self.x, is_training=is_training) # (N, T, E)
+             
+            # Decoder
+            self.outputs1 = decode1(self.decoder_inputs, self.memory) # (N, T', hp.n_mels*hp.r)
+            self.outputs2 = decode2(self.outputs1, is_training=is_training) # (N, T', (1+hp.n_fft//2)*hp.r)
+             
+            if is_training:  
+                # Loss
+                if hp.loss_type=="l1": # L1 loss
+                    self.loss1 = tf.abs(self.outputs1 - self.y)
+                    self.loss2 = tf.abs(self.outputs2 - self.z)
+                else: # L2 loss
+                    self.loss1 = tf.squared_difference(self.outputs1, self.y)
+                    self.loss2 = tf.squared_difference(self.outputs2, self.z)
+                
+                # Target masking
+                if hp.target_zeros_masking:
+                    self.loss1 *= tf.to_float(tf.not_equal(self.y, 0.))
+                    self.loss2 *= tf.to_float(tf.not_equal(self.z, 0.))
+                
+                self.mean_loss1 = tf.reduce_mean(self.loss1)
+                self.mean_loss2 = tf.reduce_mean(self.loss2)
+                self.mean_loss = self.mean_loss1 + self.mean_loss2    
+               
+                # Training Scheme
+                self.global_step = tf.Variable(0, name='global_step', trainable=False)
+                self.optimizer = tf.train.AdamOptimizer(learning_rate=hp.lr)
+                self.train_op = self.optimizer.minimize(self.mean_loss, global_step=self.global_step)
                    
-                    # Training Scheme
-                    self.global_step = tf.Variable(0, name='global_step', trainable=False)
-                    self.optimizer = tf.train.AdamOptimizer(learning_rate=hp.lr)
-                    self.train_op = self.optimizer.minimize(self.mean_loss, global_step=self.global_step)
-                       
-                    # Summmary 
-                    tf.summary.scalar('mean_loss1', self.mean_loss1)
-                    tf.summary.scalar('mean_loss2', self.mean_loss2)
-                    tf.summary.scalar('mean_loss', self.mean_loss)
-                    self.merged = tf.summary.merge_all()
+                # Summmary 
+                tf.summary.scalar('mean_loss1', self.mean_loss1)
+                tf.summary.scalar('mean_loss2', self.mean_loss2)
+                tf.summary.scalar('mean_loss', self.mean_loss)
+                self.merged = tf.summary.merge_all()
          
 def main():   
     g = Graph(); print("Training Graph loaded")
@@ -93,4 +92,3 @@ def main():
 if __name__ == '__main__':
     main()
     print("Done")
-            
