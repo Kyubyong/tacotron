@@ -9,7 +9,7 @@ from __future__ import print_function
 from hyperparams import Hyperparams as hp
 import tensorflow as tf
 from modules import *
-from data import load_vocab
+from prepro import load_vocab
 
 def encode(inputs, is_training=True, scope="encoder", reuse=None):
     '''
