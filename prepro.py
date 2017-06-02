@@ -49,7 +49,7 @@ def load_eval_data():
     texts = texts[-hp.batch_size:]
     
     X = np.zeros(shape=[hp.batch_size, hp.max_len], dtype=np.int32)
-    for i, text in enumerate(texts[-hp.batch_size:]):
+    for i, text in enumerate(texts):
         _text = np.fromstring(text, np.int32) # byte to int 
         X[i, :len(_text)] = _text
     
