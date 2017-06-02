@@ -8,8 +8,8 @@ https://www.github.com/kyubyong/tacotron
 class Hyperparams:
     '''Hyper parameters'''
     # data
-    text_file = '../WEB/text.csv'
-    sound_fpath = '../WEB'
+    text_file = 'WEB/text.csv'
+    sound_fpath = 'WEB'
     max_len = 150 # maximum length of text
     max_duration = 5.0 # maximum duration of a sound file. seconds.
     
@@ -39,5 +39,7 @@ class Hyperparams:
     loss_type = "l1" # Or you can test "l2"
     
     # etc
+    num_gpus = 1 # If you have multiple gpus, adjust this option, and increase the batch size
+                 # and run `train_multiple_gpus.py` instead of `train.py`.
     target_zeros_masking = False # If True, we mask zero padding on the target, 
                                  # so exclude them from the loss calculation.     
