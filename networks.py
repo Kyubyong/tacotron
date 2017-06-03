@@ -73,10 +73,13 @@ def decode1(decoder_inputs, memory, scope="decoder1", reuse=None):
     with tf.variable_scope(scope, reuse=reuse):
         # Decoder pre-net
         dec = prenet(decoder_inputs) # (N, T', E/2)
-          
+        
+        # Attention RNN
+        dec = attention_decoder(dec, memory, hp.embed_size) # (N, T', E)
+        
         # Decoder RNNs
-        dec_ = attention_decoder(dec, memory, hp.embed_size, scope="attention_decoder1") # (N, T', E)
-        dec = dec_ + attention_decoder(dec_, memory, hp.embed_size, scope="attention_decoder2") # (N, T', E) # residual connections
+        dec += gru(dec, hp.embed_size, False, scope="decoder_gru1") # (N, T', E)
+        dec += gru(dec, hp.embed_size, False, scope="decoder_gru2") # (N, T', E)
           
         # Outputs => (N, T', hp.n_mels*hp.r)
         out_dim = decoder_inputs.get_shape().as_list()[-1]
