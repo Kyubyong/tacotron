@@ -71,18 +71,26 @@ def reduce_frames(arry, r):
     return output
 
 def spectrogram2wav(spectrogram):
-    X_best = copy.deepcopy(spectrogram)
+    '''
+    spectrogram: [t, f], i.e. [t, nfft // 2 + 1]
+    '''
+    spectrogram = spectrogram.T  # [f, t]
+    X_best = copy.deepcopy(spectrogram)  # [f, t]
     for i in range(hp.n_iter):
         X_t = invert_spectrogram(X_best)
-        est = librosa.stft(X_t, hp.n_fft, hp.hop_length).T
-        phase = est / np.maximum(1e-8, np.abs(est))
-        X_best = spectrogram * phase[:len(spectrogram)]
+        est = librosa.stft(X_t, hp.n_fft, hp.hop_length)  # [f, t]
+        phase = est / np.maximum(1e-8, np.abs(est))  # [f, t]
+        X_best = spectrogram * phase[:len(spectrogram)]  # [f, t]
     X_t = invert_spectrogram(X_best)
-    
+
     return np.real(X_t)
 
 def invert_spectrogram(spectrogram):
-    return librosa.istft(spectrogram.T, hp.hop_length, win_length=hp.win_length, window="hann")
+    '''
+    spectrogram: [f, t]
+    '''
+    return librosa.istft(spectrogram, hp.hop_length, win_length=hp.win_length, window="hann")
+
 
 def restore_shape(arry, r):
     '''Restore and adjust the shape and content of `inputs` according to r.
