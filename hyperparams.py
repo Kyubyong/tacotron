@@ -21,7 +21,7 @@ class Hyperparams:
     hop_length = int(sr*frame_shift) # samples  This is dependent on the frame_shift.
     win_length = int(sr*frame_length) # samples This is dependent on the frame_length.
     n_mels = 80 # Number of Mel banks to generate
-    power = 1.2 # Exponent for the magnitude melspectrogram
+    power = 1.2 # Exponent for amplifying the predicted magnitude
     n_iter = 30 # Number of inversion iterations 
     
     # model
