@@ -13,14 +13,13 @@ import copy
 from hyperparams import Hyperparams as hp
 
 def get_spectrograms(sound_file): 
-    '''Extracts melspectrogram and magnitude from given `sound_file`.
+    '''Extracts melspectrogram and log magnitude from given `sound_file`.
     Args:
       sound_file: A string. Full path of a sound file.
 
     Returns:
       Transposed S: A 2d array. A transposed melspectrogram with shape of (T, n_mels)
-      Transposed magnitude: A 2d array. A transposed magnitude spectrogram 
-        with shape of (T, 1+hp.n_fft//2)
+      Transposed log magnitude: A 2d array.Has shape of (T, 1+hp.n_fft//2)
     '''
     # Loading sound file
     y, sr = librosa.load(sound_file, sr=None) # or set sr to hp.sr.
@@ -31,13 +30,16 @@ def get_spectrograms(sound_file):
                      hop_length=hp.hop_length, 
                      win_length=hp.win_length) 
     
-    # power magnitude spectrogram
-    magnitude = np.abs(D)**hp.power #(1+n_fft/2, T)
+    # magnitude spectrogram
+    magnitude = np.abs(D) #(1+n_fft/2, T)
+    
+    # power spectrogram
+    power = magnitude**2 #(1+n_fft/2, T) 
     
     # mel spectrogram
-    S = librosa.feature.melspectrogram(S=magnitude, n_mels=hp.n_mels) #(n_mels, T)
+    S = librosa.feature.melspectrogram(S=power, n_mels=hp.n_mels) #(n_mels, T)
 
-    return np.transpose(S.astype(np.float32)), np.transpose(magnitude.astype(np.float32)) # (T, n_mels), (T, 1+n_fft/2)
+    return np.transpose(S.astype(np.float32)), np.transpose(np.log(magnitude.astype(np.float32)+1e-10)) # (T, n_mels), (T, 1+n_fft/2)
             
 def shift_by_one(inputs):
     '''Shifts the content of `inputs` to the right by one 
