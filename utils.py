@@ -75,13 +75,12 @@ def spectrogram2wav(spectrogram):
     spectrogram: [t, f], i.e. [t, nfft // 2 + 1]
     '''
     spectrogram = spectrogram.T  # [f, t]
-    F, T = spectrogram.shape
     X_best = copy.deepcopy(spectrogram)  # [f, t]
     for i in range(hp.n_iter):
         X_t = invert_spectrogram(X_best)
         est = librosa.stft(X_t, hp.n_fft, hp.hop_length)  # [f, t]
         phase = est / np.maximum(1e-8, np.abs(est))  # [f, t]
-        X_best = spectrogram * phase[:, :T]  # [f, t]
+        X_best = spectrogram * phase  # [f, t]
     X_t = invert_spectrogram(X_best)
 
     return np.real(X_t)
