@@ -29,7 +29,7 @@ class Graph:
                 self.x, self.y, self.z, self.num_batch = get_batch()
                 self.decoder_inputs = shift_by_one(self.y)
                 
-                # Note that batch size was multiplied by # gpus.
+                # Make sure that batch size was multiplied by # gpus.
                 # Now we split the mini-batch data by # gpus.
                 self.x = tf.split(self.x, hp.num_gpus, 0)
                 self.y = tf.split(self.y, hp.num_gpus, 0)
@@ -97,12 +97,13 @@ class Graph:
                 self.x = tf.placeholder(tf.int32, shape=(None, None))
                 self.decoder_inputs = tf.placeholder(tf.float32, shape=(None, None, hp.n_mels*hp.r))
                 
-                # Encoder
-                self.memory = encode(self.x, is_training=is_training) # (N, T, E)
-                 
-                # Decoder
-                self.outputs1 = decode1(self.decoder_inputs, self.memory) # (N, T', hp.n_mels*hp.r)
-                self.outputs2 = decode2(self.outputs1, is_training=is_training) # (N, T', (1+hp.n_fft//2)*hp.r)
+                with tf.variable_scope('net'):
+                    # Encoder
+                    self.memory = encode(self.x, is_training=is_training) # (N, T, E)
+                     
+                    # Decoder
+                    self.outputs1 = decode1(self.decoder_inputs, self.memory) # (N, T', hp.n_mels*hp.r)
+                    self.outputs2 = decode2(self.outputs1, is_training=is_training) # (N, T', (1+hp.n_fft//2)*hp.r)
          
 def main():   
     g = Graph(); print("Training Graph loaded")
