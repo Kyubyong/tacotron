@@ -114,7 +114,7 @@ def decode2(inputs, is_training=True, scope="decoder2", reuse=None):
         dec = conv1d(dec, hp.embed_size, 3, scope="conv1d_1") # (N, T', E)
         dec = normalize(dec, type="bn", is_training=is_training, 
                             activation_fn=tf.nn.relu)
-        dec = conv1d(dec, 80, 3, scope="conv1d_2") # (N, T', 80)
+        dec = conv1d(dec, hp.embed_size//2, 3, scope="conv1d_2") # (N, T', E/2)
          
         ## Highway Nets
         for i in range(4):
