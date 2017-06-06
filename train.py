@@ -37,7 +37,7 @@ class Graph:
             self.memory = encode(self.x, is_training=is_training) # (N, T, E)
              
             # Decoder
-            self.outputs1 = decode1(self.decoder_inputs, self.memory) # (N, T', hp.n_mels*hp.r)
+            self.outputs1 = decode1(self.decoder_inputs, self.memory, is_training=is_training) # (N, T', hp.n_mels*hp.r)
             self.outputs2 = decode2(self.outputs1, is_training=is_training) # (N, T', (1+hp.n_fft//2)*hp.r)
              
             if is_training:  
