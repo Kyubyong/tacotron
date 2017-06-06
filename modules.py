@@ -235,10 +235,11 @@ def attention_decoder(inputs, memory, num_units=None, scope="attention_decoder",
         outputs, _ = tf.nn.dynamic_rnn(cell_with_attetion, inputs, dtype=tf.float32) #( 1, 6, 16)
     return outputs
 
-def prenet(inputs, scope="prenet", reuse=None):
+def prenet(inputs, is_training=True, scope="prenet", reuse=None):
     '''Prenet for Encoder and Decoder.
     Args:
       inputs: A 3D tensor of shape [N, T, hp.embed_size].
+      is_training: A boolean.
       scope: Optional scope for `variable_scope`.  
       reuse: Boolean, whether to reuse the weights of a previous layer
         by the same name.
@@ -248,12 +249,12 @@ def prenet(inputs, scope="prenet", reuse=None):
     '''
     with tf.variable_scope(scope, reuse=reuse):
         outputs = tf.layers.dense(inputs, units=hp.embed_size, activation=tf.nn.relu, name="dense1")
-        outputs = tf.nn.dropout(outputs, .5, name="dropout1")
+        outputs = tf.nn.dropout(outputs, keep_prob=.5 if is_training==True else 1., name="dropout1")
         outputs = tf.layers.dense(outputs, units=hp.embed_size//2, activation=tf.nn.relu, name="dense2")
-        outputs = tf.nn.dropout(outputs, .5, name="dropout2") 
+        outputs = tf.nn.dropout(outputs, keep_prob=.5 if is_training==True else 1., name="dropout2") 
     return outputs # (N, T, num_units/2)
 
-def highwaynet(inputs, is_training=True, num_units=None, scope="highwaynet", reuse=None):
+def highwaynet(inputs, num_units=None, scope="highwaynet", reuse=None):
     '''Highway networks, see https://arxiv.org/abs/1505.00387
 
     Args:
