@@ -31,7 +31,7 @@ def encode(inputs, is_training=True, scope="encoder", reuse=None):
         inputs = embed(inputs, len(char2idx), hp.embed_size) # (N, T, E)  
 
         # Encoder pre-net
-        prenet_out = prenet(inputs) # (N, T, E/2)
+        prenet_out = prenet(inputs, is_training=is_training) # (N, T, E/2)
 
         # Encoder CBHG 
         ## Conv1D bank 
@@ -49,7 +49,7 @@ def encode(inputs, is_training=True, scope="encoder", reuse=None):
           
         ### Highway Nets
         for i in range(hp.num_highwaynet_blocks):
-            enc = highwaynet(enc, num_units=hp.embed_size//2, is_training=is_training,
+            enc = highwaynet(enc, num_units=hp.embed_size//2, 
                                  scope='highwaynet_{}'.format(i)) # (N, T, E/2)
 
         ### Bidirectional GRU
@@ -57,12 +57,13 @@ def encode(inputs, is_training=True, scope="encoder", reuse=None):
     
     return memory
         
-def decode1(decoder_inputs, memory, scope="decoder1", reuse=None):
+def decode1(decoder_inputs, memory, is_training=True, scope="decoder1", reuse=None):
     '''
     Args:
       decoder_inputs: A 3d tensor with shape of [N, T', C'], where C'=hp.n_mels*hp.r, 
-        dtype of float32. Shifted melspectrogram of sound files.
+        dtype of float32. Shifted melspectrogram of sound files. 
       memory: A 3d tensor with shape of [N, T, C], where C=hp.embed_size.
+      is_training: Whether or not the layer is in training mode.
       scope: Optional scope for `variable_scope`
       reuse: Boolean, whether to reuse the weights of a previous layer
         by the same name.
@@ -72,7 +73,7 @@ def decode1(decoder_inputs, memory, scope="decoder1", reuse=None):
     '''
     with tf.variable_scope(scope, reuse=reuse):
         # Decoder pre-net
-        dec = prenet(decoder_inputs) # (N, T', E/2)
+        dec = prenet(decoder_inputs, is_training=is_training) # (N, T', E/2)
         
         # Attention RNN
         dec = attention_decoder(dec, memory, hp.embed_size) # (N, T', E)
@@ -92,6 +93,7 @@ def decode2(inputs, is_training=True, scope="decoder2", reuse=None):
     Args:
       inputs: A 3d tensor with shape of [N, T', C'], where C'=hp.n_mels*hp.r, 
         dtype of float32. Predicted magnitude spectrogram of sound files.
+      is_training: Whether or not the layer is in training mode.  
       scope: Optional scope for `variable_scope`
       reuse: Boolean, whether to reuse the weights of a previous layer
         by the same name.
@@ -116,7 +118,7 @@ def decode2(inputs, is_training=True, scope="decoder2", reuse=None):
          
         ## Highway Nets
         for i in range(4):
-            dec = highwaynet(dec, num_units=hp.embed_size//2, is_training=is_training,
+            dec = highwaynet(dec, num_units=hp.embed_size//2, 
                                  scope='highwaynet_{}'.format(i)) # (N, T, E/2)
          
         ## Bidirectional GRU    
