@@ -111,10 +111,10 @@ def decode2(inputs, is_training=True, scope="decoder2", reuse=None):
         dec = tf.layers.max_pooling1d(dec, 2, 1, padding="same") # (N, T', E*K/2)
          
         ## Conv1D projections
-        dec = conv1d(dec, hp.embed_size//2, 3, scope="conv1d_1") # (N, T', E)
+        dec = conv1d(dec, hp.embed_size, 3, scope="conv1d_1") # (N, T', E)
         dec = normalize(dec, type="bn", is_training=is_training, 
                             activation_fn=tf.nn.relu)
-        dec = conv1d(dec, hp.embed_size//2, 3, scope="conv1d_2") # (N, T', E)
+        dec = conv1d(dec, 80, 3, scope="conv1d_2") # (N, T', 80)
          
         ## Highway Nets
         for i in range(4):
