@@ -177,7 +177,7 @@ def conv1d_banks(inputs, K=16, is_training=True, scope="conv1d_banks", reuse=Non
                             activation_fn=tf.nn.relu)
         for k in range(2, K+1): # k = 2...K
             with tf.variable_scope("num_{}".format(k)):
-                output = conv1d(inputs, k, hp.embed_size//2, 1)
+                output = conv1d(inputs, hp.embed_size // 2, k, 1)
                 output = normalize(output, type="bn", is_training=is_training, 
                             activation_fn=tf.nn.relu)
                 outputs = tf.concat((outputs, output), -1)
