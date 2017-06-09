@@ -39,7 +39,6 @@ def get_spectrograms(sound_file):
     # mel spectrogram
     S = librosa.feature.melspectrogram(S=power, n_mels=hp.n_mels) #(n_mels, T)
 
-
     return np.transpose(S.astype(np.float32)), np.transpose(np.log(magnitude.astype(np.float32)+1e-10)) # (T, n_mels), (T, 1+n_fft/2)
             
 def shift_by_one(inputs):
