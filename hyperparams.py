@@ -30,7 +30,7 @@ class Hyperparams:
     decoder_num_banks = 8
     num_highwaynet_blocks = 4
     r = 5 # Reduction factor. Paper => 2, 3, 5
-	norm_type = "bn"  # a normalizer function. value: bn, ln, or ins
+    norm_type = "bn"  # a normalizer function. value: bn, ln, or ins
     
     # training scheme
     lr = 0.001 # Paper => Exponential decay
