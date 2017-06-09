@@ -136,7 +136,7 @@ def get_batch():
         @producer_func
         def get_text_and_spectrograms(_inputs):
             '''From `_inputs`, which has been fetched from slice queues,
-               makes text, spectrogram, and magnitude,
+               makes text, spectrogram, and log magnitude,
                then enqueue them again. 
             '''
             _text, _sound_file = _inputs
@@ -147,8 +147,9 @@ def get_batch():
              
             _spectrogram = reduce_frames(_spectrogram, hp.r)
             _magnitude = reduce_frames(_magnitude, hp.r)
+            _log_magnitude = np.log(_magnitude+1e-10)
     
-            return _text, _spectrogram, _magnitude
+            return _text, _spectrogram, _log_magnitude
             
         # Decode sound file
         x, y, z = get_text_and_spectrograms(inputs=[text, sound_file], 
