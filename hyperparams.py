@@ -23,6 +23,7 @@ class Hyperparams:
     n_mels = 80 # Number of Mel banks to generate
     power = 1.2 # Exponent for amplifying the predicted magnitude
     n_iter = 30 # Number of inversion iterations 
+    log_mel_spectrogram = False  # if True use log mel spectrogram, else use linear
     
     # model
     embed_size = 256 # alias = E
