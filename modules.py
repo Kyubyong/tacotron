@@ -112,6 +112,19 @@ def normalize(inputs,
                                             scale=True, 
                                             activation_fn=activation_fn, 
                                             scope=scope)
+    elif type == "ins":
+        with tf.variable_scope(scope):
+            batch, steps, channels = inputs.get_shape().as_list()
+            var_shape = [channels]
+            mu, sigma_sq = tf.nn.moments(inputs, [1], keep_dims=True)
+            shift = tf.Variable(tf.zeros(var_shape))
+            scale = tf.Variable(tf.ones(var_shape))
+            epsilon = 1e-8
+            normalized = (inputs - mu) / (sigma_sq + epsilon) ** (.5)
+            outputs = scale * normalized + shift
+            if activation_fn:
+                outputs = activation_fn(outputs)
+	
     else:
         raise ValueError("Currently we support `bn` or `ln` only.")
     
@@ -173,12 +186,12 @@ def conv1d_banks(inputs, K=16, is_training=True, scope="conv1d_banks", reuse=Non
     '''
     with tf.variable_scope(scope, reuse=reuse):
         outputs = conv1d(inputs, hp.embed_size//2, 1) # k=1
-        outputs = normalize(outputs, type="bn", is_training=is_training, 
+        outputs = normalize(outputs, type=hp.norm_type, is_training=is_training, 
                             activation_fn=tf.nn.relu)
         for k in range(2, K+1): # k = 2...K
             with tf.variable_scope("num_{}".format(k)):
                 output = conv1d(inputs, hp.embed_size // 2, k, 1)
-                output = normalize(output, type="bn", is_training=is_training, 
+                output = normalize(output, type=hp.norm_type, is_training=is_training, 
                             activation_fn=tf.nn.relu)
                 outputs = tf.concat((outputs, output), -1)
     return outputs # (N, T, Hp.embed_size//2*K)
