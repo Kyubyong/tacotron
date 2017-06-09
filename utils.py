@@ -53,7 +53,7 @@ def shift_by_one(inputs):
     '''
     return tf.concat((tf.zeros_like(inputs[:, :1, :]), inputs[:, :-1, :]), 1)
 
-def reduce_frames(arry, r):
+def reduce_frames(arry, r, pad_val):
     '''Reduces and adjust the shape and content of `arry` according to r.
     
     Args:
@@ -66,7 +66,7 @@ def reduce_frames(arry, r):
     T, C = arry.shape
     num_paddings = hp.r - (T % r) if T % r != 0 else 0
      
-    padded = np.pad(arry, [[0, num_paddings], [0, 0]], 'constant')
+    padded = np.pad(arry, [[0, num_paddings], [0, 0]], 'constant', constant_values=pad_val)
     output = np.reshape(padded, (-1, C*r))
     return output
 
