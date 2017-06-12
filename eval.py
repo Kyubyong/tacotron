@@ -64,7 +64,10 @@ def eval():
             fout.write(str(i) + "\t" + "".join(idx2char[idx] for idx in np.fromstring(x, np.int32) if idx != 0) + "\n")
              
             # generate wav files
-            audio = spectrogram2wav(np.power(np.e, s)**hp.power)
+            if hp.use_log_magnitude:
+                audio = spectrogram2wav(np.power(np.e, s)**hp.power)
+            else:
+                audio = spectrogram2wav(s**hp.power)
             write("samples/{}_{}.wav".format(mname, i), hp.sr, audio)     
                                           
 if __name__ == '__main__':
