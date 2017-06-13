@@ -72,6 +72,12 @@ def decode1(decoder_inputs, memory, is_training=True, scope="decoder1", reuse=No
       Predicted melspectrogram tensor with shape of [N, T', C'].
     '''
     with tf.variable_scope(scope, reuse=reuse):
+        if hp.use_last_frame:
+            # During training and inference,  we always fed the last frame of r predictions as the decoder input
+            N, T, C = decoder_inputs.get_shape().as_list()
+            decoder_inputs = tf.reshape(decoder_inputs, [N, -1, C // hp.r])
+            decoder_inputs = decoder_inputs[:, (hp.r - 1)::hp.r, :]
+
         # Decoder pre-net
         dec = prenet(decoder_inputs, is_training=is_training) # (N, T', E/2)
         
@@ -84,6 +90,8 @@ def decode1(decoder_inputs, memory, is_training=True, scope="decoder1", reuse=No
           
         # Outputs => (N, T', hp.n_mels*hp.r)
         out_dim = decoder_inputs.get_shape().as_list()[-1]
+        # predict r frames at one time step
+        out_dim = out_dim * hp.r if hp.use_last_frame is True else out_dim
         outputs = tf.layers.dense(dec, out_dim) 
     
     return outputs
@@ -103,6 +111,10 @@ def decode2(inputs, is_training=True, scope="decoder2", reuse=None):
         where C''= 1+hp.n_fft//2)*hp.r.
     '''
     with tf.variable_scope(scope, reuse=reuse):
+        if hp.use_last_frame:
+            N, T, C = inputs.get_shape().as_list()
+            inputs = tf.reshape(inputs, [N, -1 if T is None else T * hp.r, -1 if C is None else C // hp.r])
+        
         # Decoder Post-processing net = CBHG
         ## Conv1D bank
         dec = conv1d_banks(inputs, K=hp.decoder_num_banks, is_training=is_training) # (N, T', E*K/2)
@@ -114,7 +126,13 @@ def decode2(inputs, is_training=True, scope="decoder2", reuse=None):
         dec = conv1d(dec, hp.embed_size, 3, scope="conv1d_1") # (N, T', E)
         dec = normalize(dec, type=hp.norm_type, is_training=is_training, 
                             activation_fn=tf.nn.relu)
-        dec = conv1d(dec, hp.embed_size//2, 3, scope="conv1d_2") # (N, T', E/2)
+
+        if hp.use_last_frame is False:
+            dec = conv1d(dec, hp.embed_size // 2, 3, scope="conv1d_2")  # (N, T', E/2)
+        else:
+            dec = conv1d(dec, hp.n_mels, 3, scope="conv1d_2")
+            dec += inputs
+            dec = tf.layers.dense(dec, hp.embed_size // 2)
          
         ## Highway Nets
         for i in range(4):
@@ -125,7 +143,10 @@ def decode2(inputs, is_training=True, scope="decoder2", reuse=None):
         dec = gru(dec, hp.embed_size//2, True) # (N, T', E)  
         
         # Outputs => (N, T', (1+hp.n_fft//2)*hp.r)
-        out_dim = (1+hp.n_fft//2)*hp.r
+        out_dim = (1 + hp.n_fft // 2) * hp.r if hp.use_last_frame is False else (1 + hp.n_fft // 2)
         outputs = tf.layers.dense(dec, out_dim)
+        if hp.use_last_frame:
+            N, T, C = outputs.get_shape().as_list()
+            outputs = tf.reshape(outputs, [N, -1, C * hp.r])
     
     return outputs

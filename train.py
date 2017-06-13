@@ -30,8 +30,8 @@ class Graph:
                 self.x, self.y, self.z, self.num_batch = get_batch()
                 self.decoder_inputs = shift_by_one(self.y)
             else: # Evaluation
-                self.x = tf.placeholder(tf.int32, shape=(None, None))
-                self.decoder_inputs = tf.placeholder(tf.float32, shape=(None, None, hp.n_mels*hp.r))
+                self.x = tf.placeholder(tf.int32, shape=(hp.batch_size, None))
+                self.decoder_inputs = tf.placeholder(tf.float32, shape=(hp.batch_size, None, hp.n_mels * hp.r))
 
             # Encoder
             self.memory = encode(self.x, is_training=is_training) # (N, T, E)
