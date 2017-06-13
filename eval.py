@@ -67,6 +67,7 @@ def eval():
             if hp.use_log_magnitude:
                 audio = spectrogram2wav(np.power(np.e, s)**hp.power)
             else:
+                s = np.where(s < 0, 0, s)
                 audio = spectrogram2wav(s**hp.power)
             write("samples/{}_{}.wav".format(mname, i), hp.sr, audio)     
                                           
