@@ -53,16 +53,17 @@ def eval():
                 outputs[:, j, :] = _outputs[:, j, :]
               
             outputs2 = sess.run(g.outputs2, {g.outputs1: outputs})
-            spectrograms = restore_shape(outputs2, hp.r)
-             
      
     # Generate wav files
     if not os.path.exists('samples'): os.mkdir('samples') 
     with codecs.open('samples/text.txt', 'w', 'utf-8') as fout:
-        for i, (x, s) in enumerate(zip(X, spectrograms)):
+        for i, (x, s) in enumerate(zip(X, outputs2)):
             # write text
             fout.write(str(i) + "\t" + "".join(idx2char[idx] for idx in np.fromstring(x, np.int32) if idx != 0) + "\n")
-             
+
+            # restore shape
+            s = restore_shape(s, hp.win_length//hp.hop_length, hp.r) 
+                         
             # generate wav files
             if hp.use_log_magnitude:
                 audio = spectrogram2wav(np.power(np.e, s)**hp.power)
