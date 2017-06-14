@@ -32,7 +32,7 @@ def create_train_data():
         sound_file = hp.sound_fpath + "/" + sound_fname + ".wav"
         text = re.sub(r"[^ a-z']", "", text.strip().lower())
          
-        if (len(text) <= hp.max_len) and (1. < float(duration) <= hp.max_duration):
+        if len(text) <= hp.max_len:
             texts.append(np.array([char2idx[char] for char in text], np.int32).tostring())
             sound_files.append(sound_file)
              
