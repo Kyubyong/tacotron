@@ -53,22 +53,33 @@ def shift_by_one(inputs):
     '''
     return tf.concat((tf.zeros_like(inputs[:, :1, :]), inputs[:, :-1, :]), 1)
 
-def reduce_frames(arry, r):
+def reduce_frames(arry, step, r):
     '''Reduces and adjust the shape and content of `arry` according to r.
     
     Args:
       arry: A 2d array with shape of [T, C]
+      step: An int. Overlapping span.
       r: Reduction factor
      
     Returns:
       A 2d array with shape of [-1, C*r]
     '''
+    T = arry.shape[0]
+    num_padding = (step*r) - (T % (step*r)) if T % (step*r) !=0 else 0
+    
+    arry = np.pad(arry, [[0, num_padding], [0, 0]], 'constant', constant_values=(0, 0))
     T, C = arry.shape
-    num_paddings = hp.r - (T % r) if T % r != 0 else 0
-     
-    padded = np.pad(arry, [[0, num_paddings], [0, 0]], 'constant')
-    output = np.reshape(padded, (-1, C*r))
-    return output
+    sliced = np.split(arry, list(range(step, T, step)), axis=0)
+    
+    started = False
+    for i in range(0, len(sliced), r):
+        if not started:
+            reshaped = np.hstack(sliced[i:i+r])
+            started = True
+        else:
+            reshaped = np.vstack((reshaped, np.hstack(sliced[i:i+r])))
+            
+    return reshaped
 
 def spectrogram2wav(spectrogram):
     '''
@@ -92,14 +103,28 @@ def invert_spectrogram(spectrogram):
     return librosa.istft(spectrogram, hp.hop_length, win_length=hp.win_length, window="hann")
 
 
-def restore_shape(arry, r):
-    '''Restore and adjust the shape and content of `inputs` according to r.
+def restore_shape(arry, step, r):
+    '''Reduces and adjust the shape and content of `arry` according to r.
+    
     Args:
-      arry: A 3d array with shape of [N, T, C]
+      arry: A 2d array with shape of [T, C]
+      step: An int. Overlapping span.
       r: Reduction factor
-      
+     
     Returns:
-      A 3d tensor with shape of [-1, C*r]
+      A 2d array with shape of [-1, C*r]
     '''
-    N, T, C = arry.shape
-    return arry.reshape((N, -1, C//r))
+    T, C = arry.shape
+    sliced = np.split(arry, list(range(step, T, step)), axis=0)
+    
+    started = False
+    for s in sliced:
+        if not started:
+            restored = np.vstack(np.split(s, r, axis=1))
+            started = True
+        else:    
+            restored = np.vstack((restored, np.vstack(np.split(s, r, axis=1))))
+    
+    # Trim zero paddings
+    restored = restored[:np.count_nonzero(restored.sum(axis=1))]    
+    return restored
