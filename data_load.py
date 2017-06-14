@@ -145,8 +145,8 @@ def get_batch():
             _text = np.fromstring(_text, np.int32) # byte to int
             _spectrogram, _magnitude = get_spectrograms(_sound_file)
              
-            _spectrogram = reduce_frames(_spectrogram, hp.r)
-            _magnitude = reduce_frames(_magnitude, hp.r)
+            _spectrogram = reduce_frames(_spectrogram, hp.win_length//hp.hop_length, hp.r)
+            _magnitude = reduce_frames(_magnitude, hp.win_length//hp.hop_length, hp.r)
     
             return _text, _spectrogram, _magnitude
             
