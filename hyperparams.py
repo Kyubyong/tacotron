@@ -10,8 +10,7 @@ class Hyperparams:
     # data
     text_file = 'WEB/text.csv'
     sound_fpath = 'WEB'
-    max_len = 150 # maximum length of text
-    max_duration = 5.0 # maximum duration of a sound file. seconds.
+    max_len = 100 # maximum length of text
     
     # signal processing
     sr = 22050 # Sampling rate. Paper => 24000
