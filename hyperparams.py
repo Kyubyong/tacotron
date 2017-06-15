@@ -38,6 +38,7 @@ class Hyperparams:
     batch_size = 32
     num_epochs = 200 # Paper => 2M global steps!
     loss_type = "l1" # Or you can test "l2"
+    num_samples = 32
     
     # etc
     num_gpus = 1 # If you have multiple gpus, adjust this option, and increase the batch size

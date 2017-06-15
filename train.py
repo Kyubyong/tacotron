@@ -28,17 +28,18 @@ class Graph:
         with self.graph.as_default():
             if is_training:
                 self.x, self.y, self.z, self.num_batch = get_batch()
-                self.decoder_inputs = shift_by_one(self.y)
             else: # Evaluation
                 self.x = tf.placeholder(tf.int32, shape=(None, None))
                 self.decoder_inputs = tf.placeholder(tf.float32, shape=(None, None, hp.n_mels*hp.r))
 
-            # Encoder
-            self.memory = encode(self.x, is_training=is_training) # (N, T, E)
-             
-            # Decoder
-            self.outputs1 = decode1(self.decoder_inputs, self.memory, is_training=is_training) # (N, T', hp.n_mels*hp.r)
-            self.outputs2 = decode2(self.outputs1, is_training=is_training) # (N, T', (1+hp.n_fft//2)*hp.r)
+            self.decoder_inputs = shift_by_one(self.y)
+            with tf.variable_scope("net"):
+                # Encoder
+                self.memory = encode(self.x, is_training=is_training) # (N, T, E)
+
+                # Decoder
+                self.outputs1 = decode1(self.decoder_inputs, self.memory, is_training=is_training) # (N, T', hp.n_mels*hp.r)
+                self.outputs2 = decode2(self.outputs1, is_training=is_training) # (N, T', (1+hp.n_fft//2)*hp.r)
              
             if is_training:  
                 # Loss

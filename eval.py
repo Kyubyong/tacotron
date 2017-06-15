@@ -18,8 +18,7 @@ from scipy.io.wavfile import write
 
 from hyperparams import Hyperparams as hp
 from prepro import *
-if hp.num_gpus == 1: from train import Graph
-else: from train_multi_gpus import Graph
+from train import Graph
 from utils import *
 
 def eval(): 
@@ -40,20 +39,15 @@ def eval():
              
             # Get model
             mname = open(hp.logdir + '/checkpoint', 'r').read().split('"')[1] # model name
-               
-            timesteps = 100 # Adjust this number as you want
-            outputs_shifted = np.zeros((hp.batch_size, timesteps, hp.n_mels*hp.r), np.int32)
-            outputs = np.zeros((hp.batch_size, timesteps, hp.n_mels*hp.r), np.float32)   # hp.n_mels*hp.r  
+
+            timesteps = 100  # Adjust this number as you want
+            outputs1 = np.zeros((hp.num_samples, timesteps, hp.n_mels * hp.r), np.float32)  # hp.n_mels*hp.r
             for j in range(timesteps):
-                # predict next frames
-                _outputs = sess.run(g.outputs1, {g.x: X, g.decoder_inputs: outputs_shifted})
-                # update character sequence
-                if j < timesteps - 1:
-                    outputs_shifted[:, j + 1] = _outputs[:, j, :]
-                outputs[:, j, :] = _outputs[:, j, :]
-              
-            outputs2 = sess.run(g.outputs2, {g.outputs1: outputs})
-     
+                _outputs1 = sess.run(g.outputs1, {g.x: X, g.y: outputs1})
+                outputs1[:, j, :] = _outputs1[:, j, :]
+
+            outputs2 = sess.run(g.outputs2, {g.outputs1: outputs1})
+
     # Generate wav files
     if not os.path.exists('samples'): os.mkdir('samples') 
     with codecs.open('samples/text.txt', 'w', 'utf-8') as fout:

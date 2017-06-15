@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
 #/usr/bin/python2
+# -*- coding: utf-8 -*-
+
 '''
 By kyubyong park. kbpark.linguist@gmail.com. 
 https://www.github.com/kyubyong/tacotron
@@ -20,7 +21,7 @@ def load_vocab():
     char2idx = {char:idx for idx, char in enumerate(vocab)}
     idx2char = {idx:char for idx, char in enumerate(vocab)}
     return char2idx, idx2char    
- 
+
 def create_train_data():
     # Load vocabulary
     char2idx, idx2char = load_vocab() 
@@ -39,16 +40,16 @@ def create_train_data():
     return texts, sound_files
      
 def load_train_data():
-    """We train on the whole data but the last mini-batch."""
+    """We train on the whole data but the last num_samples."""
     texts, sound_files = create_train_data()
-    return texts[:-hp.batch_size], sound_files[:-hp.batch_size]
+    return texts[:-hp.num_samples], sound_files[:-hp.num_samples]
  
 def load_eval_data():
-    """We evaluate on the last mini-batch."""
+    """We evaluate on the last num_samples."""
     texts, _ = create_train_data()
-    texts = texts[-hp.batch_size:]
+    texts = texts[-hp.num_samples:]
     
-    X = np.zeros(shape=[hp.batch_size, hp.max_len], dtype=np.int32)
+    X = np.zeros(shape=[hp.num_samples, hp.max_len], dtype=np.int32)
     for i, text in enumerate(texts):
         _text = np.fromstring(text, np.int32) # byte to int 
         X[i, :len(_text)] = _text
