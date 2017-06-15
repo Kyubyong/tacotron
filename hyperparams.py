@@ -31,6 +31,7 @@ class Hyperparams:
     num_highwaynet_blocks = 4
     r = 5 # Reduction factor. Paper => 2, 3, 5
     norm_type = "bn"  # a normalizer function. value: bn, ln, or ins
+    use_last_frame = True  # If True, only feds the last frame of the r predictions to decoder.
     
     # training scheme
     lr = 0.001 # Paper => Exponential decay
