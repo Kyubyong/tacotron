@@ -5,7 +5,7 @@
 
 ## **Major History**
   * June 4, 2017. Third draft. 
-    * Some people reported they gained promising results, based on my code. Among them are, [@ggsonic](github.com/ggsonic), [@chief7](github.com/chief7). To check relevant discussions, see this [discussion](https://www.github.com/Kyubyong/tacotron/issues/30), or their repo. 
+    * Some people reported they gained promising results, based on my code. Among them are, [@ggsonic](https://www.github.com/ggsonic), [@chief7](https://www.github.com/chief7). To check relevant discussions, see this [discussion](https://www.github.com/Kyubyong/tacotron/issues/30), or their repo. 
     * According @ggsonic, instance normalization worked better than batch normalization.
     * @chief7 trained on pavoque data, a German corpus spoken by a single male actor. He said that instance normalization and zero-masking are good choices.
     * Yuxuan, the first author of the paer, advised me to do sanity-check first with small data, and to adjust hyperparemters since our dataset is different from his. I really appreciate his tips, and hope this would help you.
