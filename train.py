@@ -30,7 +30,7 @@ class Graph:
                 self.x, self.y, self.z, self.num_batch = get_batch()
             else: # Evaluation
                 self.x = tf.placeholder(tf.int32, shape=(None, None))
-                self.decoder_inputs = tf.placeholder(tf.float32, shape=(None, None, hp.n_mels*hp.r))
+                self.y = tf.placeholder(tf.float32, shape=(None, None, hp.n_mels*hp.r))
 
             self.decoder_inputs = shift_by_one(self.y)
             with tf.variable_scope("net"):
