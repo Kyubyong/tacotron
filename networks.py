@@ -6,15 +6,19 @@ https://www.github.com/kyubyong/tacotron
 '''
 
 from __future__ import print_function
+
 from hyperparams import Hyperparams as hp
-import tensorflow as tf
 from modules import *
 from prepro import load_vocab
+import tensorflow as tf
+
 
 def encode(inputs, is_training=True, scope="encoder", reuse=None):
     '''
     Args:
       inputs: A 2d tensor with shape of [N, T], dtype of int32.
+      seqlens: A 1d tensor with shape of [N,], dtype of int32.
+      masks: A 3d tensor with shape of [N, T, 1], dtype of float32.
       is_training: Whether or not the layer is in training mode.
       scope: Optional scope for `variable_scope`
       reuse: Boolean, whether to reuse the weights of a previous layer
@@ -26,25 +30,27 @@ def encode(inputs, is_training=True, scope="encoder", reuse=None):
     with tf.variable_scope(scope, reuse=reuse):
         # Load vocabulary 
         char2idx, idx2char = load_vocab()
-          
+        
         # Character Embedding
         inputs = embed(inputs, len(char2idx), hp.embed_size) # (N, T, E)  
-
+        
         # Encoder pre-net
         prenet_out = prenet(inputs, is_training=is_training) # (N, T, E/2)
-
+        
         # Encoder CBHG 
         ## Conv1D bank 
         enc = conv1d_banks(prenet_out, K=hp.encoder_num_banks, is_training=is_training) # (N, T, K * E / 2)
-
+        
         ### Max pooling
         enc = tf.layers.max_pooling1d(enc, 2, 1, padding="same")  # (N, T, K * E / 2)
           
         ### Conv1D projections
         enc = conv1d(enc, hp.embed_size//2, 3, scope="conv1d_1") # (N, T, E/2)
         enc = normalize(enc, type=hp.norm_type, is_training=is_training, 
-                            activation_fn=tf.nn.relu)
+                            activation_fn=tf.nn.relu, scope="norm1")
         enc = conv1d(enc, hp.embed_size//2, 3, scope="conv1d_2") # (N, T, E/2)
+        enc = normalize(enc, type=hp.norm_type, is_training=is_training, 
+                            activation_fn=None, scope="norm2")
         enc += prenet_out # (N, T, E/2) # residual connections
           
         ### Highway Nets
@@ -76,8 +82,8 @@ def decode1(decoder_inputs, memory, is_training=True, scope="decoder1", reuse=No
         dec = prenet(decoder_inputs, is_training=is_training) # (N, T', E/2)
         
         # Attention RNN
-        dec = attention_decoder(dec, memory, hp.embed_size) # (N, T', E)
-        
+        dec = attention_decoder(dec, memory, num_units=hp.embed_size) # (N, T', E)
+
         # Decoder RNNs
         dec += gru(dec, hp.embed_size, False, scope="decoder_gru1") # (N, T', E)
         dec += gru(dec, hp.embed_size, False, scope="decoder_gru2") # (N, T', E)
@@ -92,7 +98,7 @@ def decode2(inputs, is_training=True, scope="decoder2", reuse=None):
     '''
     Args:
       inputs: A 3d tensor with shape of [N, T', C'], where C'=hp.n_mels*hp.r, 
-        dtype of float32. Predicted magnitude spectrogram of sound files.
+        dtype of float32. Log magnitude spectrogram of sound files.
       is_training: Whether or not the layer is in training mode.  
       scope: Optional scope for `variable_scope`
       reuse: Boolean, whether to reuse the weights of a previous layer
@@ -100,12 +106,15 @@ def decode2(inputs, is_training=True, scope="decoder2", reuse=None):
         
     Returns
       Predicted magnitude spectrogram tensor with shape of [N, T', C''], 
-        where C''= 1+hp.n_fft//2)*hp.r.
+        where C'' = (1+hp.n_fft//2)*hp.r.
     '''
     with tf.variable_scope(scope, reuse=reuse):
+        # Decoder pre-net
+        prenet_out = prenet(inputs, is_training=is_training) # (N, T'', E/2)
+        
         # Decoder Post-processing net = CBHG
         ## Conv1D bank
-        dec = conv1d_banks(inputs, K=hp.decoder_num_banks, is_training=is_training) # (N, T', E*K/2)
+        dec = conv1d_banks(prenet_out, K=hp.decoder_num_banks, is_training=is_training) # (N, T', E*K/2)
          
         ## Max pooling
         dec = tf.layers.max_pooling1d(dec, 2, 1, padding="same") # (N, T', E*K/2)
@@ -113,8 +122,11 @@ def decode2(inputs, is_training=True, scope="decoder2", reuse=None):
         ## Conv1D projections
         dec = conv1d(dec, hp.embed_size, 3, scope="conv1d_1") # (N, T', E)
         dec = normalize(dec, type=hp.norm_type, is_training=is_training, 
-                            activation_fn=tf.nn.relu)
+                            activation_fn=tf.nn.relu, scope="norm1")
         dec = conv1d(dec, hp.embed_size//2, 3, scope="conv1d_2") # (N, T', E/2)
+        dec = normalize(dec, type=hp.norm_type, is_training=is_training, 
+                            activation_fn=None, scope="norm2")
+        dec += prenet_out
          
         ## Highway Nets
         for i in range(4):

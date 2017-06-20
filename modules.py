@@ -6,8 +6,10 @@ https://www.github.com/kyubyong/tacotron
 '''
 
 from __future__ import print_function
-import tensorflow as tf
+
 from hyperparams import Hyperparams as hp
+import tensorflow as tf
+
 
 def embed(inputs, vocab_size, num_units, zero_pad=True, scope="embedding", reuse=None):
     '''Embeds a given tensor. 
@@ -40,8 +42,10 @@ def embed(inputs, vocab_size, num_units, zero_pad=True, scope="embedding", reuse
 def normalize(inputs, 
               type="bn",
               decay=.999,
+              epsilon=1e-8,
               is_training=True, 
               activation_fn=None,
+              reuse=None,
               scope="normalize"):
     '''Applies {batch|layer} normalization.
     
@@ -90,7 +94,8 @@ def normalize(inputs,
                                                is_training=is_training,
                                                scope=scope,
                                                zero_debias_moving_mean=True,
-                                               fused=True)
+                                               fused=True,
+                                               reuse=reuse)
             # restore original shape
             if inputs_rank==2:
                 outputs = tf.squeeze(outputs, axis=[1, 2])
@@ -105,29 +110,25 @@ def normalize(inputs,
                                                updates_collections=None,
                                                is_training=is_training,
                                                scope=scope,
+                                               reuse=reuse,
                                                fused=False)    
-    elif type=="ln":
-        outputs = tf.contrib.layers.layer_norm(inputs=inputs, 
-                                            center=True, 
-                                            scale=True, 
-                                            activation_fn=activation_fn, 
-                                            scope=scope)
-    elif type == "ins":
-        with tf.variable_scope(scope):
-            batch, steps, channels = inputs.get_shape().as_list()
-            var_shape = [channels]
-            mu, sigma_sq = tf.nn.moments(inputs, [1], keep_dims=True)
-            shift = tf.Variable(tf.zeros(var_shape))
-            scale = tf.Variable(tf.ones(var_shape))
-            epsilon = 1e-8
-            normalized = (inputs - mu) / (sigma_sq + epsilon) ** (.5)
-            outputs = scale * normalized + shift
-            if activation_fn:
-                outputs = activation_fn(outputs)
-	
+    elif type in ("ln",  "ins"):
+        reduction_axis = -1 if type=="ln" else 1   
+        with tf.variable_scope(scope, reuse=reuse):
+            inputs_shape = inputs.get_shape()
+            params_shape = inputs_shape[-1:]
+        
+            mean, variance = tf.nn.moments(inputs, [reduction_axis], keep_dims=True)
+            beta = tf.Variable(tf.zeros(params_shape))
+            gamma = tf.Variable(tf.ones(params_shape))
+            normalized = (inputs - mean) / ( (variance + epsilon) ** (.5) )
+            outputs = gamma * normalized + beta
     else:
-        raise ValueError("Currently we support `bn` or `ln` only.")
+        outputs = inputs
     
+    if activation_fn:
+        outputs = activation_fn(outputs)
+                
     return outputs
 
 def conv1d(inputs, 
@@ -154,7 +155,6 @@ def conv1d(inputs,
     Returns:
       A masked tensor of the same shape and dtypes as `inputs`.
     '''
-    
     with tf.variable_scope(scope):
         if padding.lower()=="causal":
             # pre-padding for causality
@@ -186,14 +186,12 @@ def conv1d_banks(inputs, K=16, is_training=True, scope="conv1d_banks", reuse=Non
     '''
     with tf.variable_scope(scope, reuse=reuse):
         outputs = conv1d(inputs, hp.embed_size//2, 1) # k=1
-        outputs = normalize(outputs, type=hp.norm_type, is_training=is_training, 
-                            activation_fn=tf.nn.relu)
         for k in range(2, K+1): # k = 2...K
             with tf.variable_scope("num_{}".format(k)):
-                output = conv1d(inputs, hp.embed_size // 2, k, 1)
-                output = normalize(output, type=hp.norm_type, is_training=is_training, 
-                            activation_fn=tf.nn.relu)
+                output = conv1d(inputs, hp.embed_size // 2, k)
                 outputs = tf.concat((outputs, output), -1)
+        outputs = normalize(outputs, type=hp.norm_type, is_training=is_training, 
+                            activation_fn=tf.nn.relu)
     return outputs # (N, T, Hp.embed_size//2*K)
 
 def gru(inputs, num_units=None, bidirection=False, scope="gru", reuse=None):
@@ -219,18 +217,21 @@ def gru(inputs, num_units=None, bidirection=False, scope="gru", reuse=None):
         cell = tf.contrib.rnn.GRUCell(num_units)  
         if bidirection: 
             cell_bw = tf.contrib.rnn.GRUCell(num_units)
-            outputs, _ = tf.nn.bidirectional_dynamic_rnn(cell, cell_bw, inputs, dtype=tf.float32)
+            outputs, _ = tf.nn.bidirectional_dynamic_rnn(cell, cell_bw, inputs, 
+                                                         dtype=tf.float32)
             return tf.concat(outputs, 2)  
         else:
-            outputs, _ = tf.nn.dynamic_rnn(cell, inputs, dtype=tf.float32)
+            outputs, _ = tf.nn.dynamic_rnn(cell, inputs, 
+                                           dtype=tf.float32)
             return outputs
 
 def attention_decoder(inputs, memory, num_units=None, scope="attention_decoder", reuse=None):
     '''Applies a GRU to `inputs`, while attending `memory`.
     Args:
       inputs: A 3d tensor with shape of [N, T', C']. Decoder inputs.
-      num_units: An int. Attention size.
       memory: A 3d tensor with shape of [N, T, C]. Outputs of encoder network.
+      seqlens: A 1d tensor with shape of [N,], dtype of int32.
+      num_units: An int. Attention size.
       scope: Optional scope for `variable_scope`.  
       reuse: Boolean, whether to reuse the weights of a previous layer
         by the same name.
@@ -241,11 +242,15 @@ def attention_decoder(inputs, memory, num_units=None, scope="attention_decoder",
     with tf.variable_scope(scope, reuse=reuse):
         if num_units is None:
             num_units = inputs.get_shape().as_list[-1]
-            
-        attention_mechanism = tf.contrib.seq2seq.BahdanauAttention(num_units, memory)
+        
+        attention_mechanism = tf.contrib.seq2seq.BahdanauAttention(num_units, 
+                                                                   memory, 
+                                                                   normalize=True,
+                                                                   probability_fn=tf.nn.softmax)
         decoder_cell = tf.contrib.rnn.GRUCell(num_units)
-        cell_with_attetion = tf.contrib.seq2seq.DynamicAttentionWrapper(decoder_cell, attention_mechanism, num_units)
-        outputs, _ = tf.nn.dynamic_rnn(cell_with_attetion, inputs, dtype=tf.float32) #( 1, 6, 16)
+        cell_with_attention = tf.contrib.seq2seq.AttentionWrapper(decoder_cell, attention_mechanism, num_units)
+        outputs, _ = tf.nn.dynamic_rnn(cell_with_attention, inputs, 
+                                       dtype=tf.float32) #( N, T', 16)
     return outputs
 
 def prenet(inputs, is_training=True, scope="prenet", reuse=None):

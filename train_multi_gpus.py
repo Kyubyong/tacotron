@@ -6,20 +6,22 @@ https://www.github.com/kyubyong/tacotron
 '''
 
 from __future__ import print_function
-import tensorflow as tf
-import numpy as np
-import librosa
 
 import os
+
+import librosa
 from tqdm import tqdm
 
-from hyperparams import Hyperparams as hp
-from prepro import *
-from networks import encode, decode1, decode2
-from modules import *
 from data_load import get_batch
+from hyperparams import Hyperparams as hp
+from modules import *
+from networks import encode, decode1, decode2
+import numpy as np
+from prepro import *
+import tensorflow as tf
 from utils import shift_by_one
-                     
+
+
 class Graph:
     def __init__(self, is_training=True):
         self.graph = tf.Graph()
@@ -36,6 +38,9 @@ class Graph:
                 self.z = tf.split(self.z, hp.num_gpus, 0)
                 self.decoder_inputs = tf.split(self.decoder_inputs, hp.num_gpus, 0)
                 
+                # Sequence lengths for masking
+                self.x_lengths = tf.to_int32(tf.reduce_sum(tf.sign(tf.abs(self.x)), -1)) # (N,)
+                self.x_masks = tf.to_float(tf.expand_dims(tf.sign(tf.abs(self.x)), -1)) # (N, T, 1)
                 # optimizer
                 self.optimizer = tf.train.AdamOptimizer(learning_rate=hp.lr)
             
@@ -46,11 +51,13 @@ class Graph:
                             with tf.name_scope('gpu_{}'.format(i)):
                                 # Encoder
                                 self.memory = encode(self.x[i], is_training=is_training) # (N, T, E)
-                                 
-                                # Decoder
-                                self.outputs1 = decode1(self.decoder_inputs[i], self.memory, is_training=is_training) # (N, T', hp.n_mels*hp.r)
+                                
+                                # Decoder 
+                                self.outputs1 = decode1(self.decoder_inputs[i], 
+                                                         self.memory,
+                                                         is_training=is_training) # (N, T', hp.n_mels*hp.r)
                                 self.outputs2 = decode2(self.outputs1, is_training=is_training) # (N, T', (1+hp.n_fft//2)*hp.r)
-                                 
+              
                                 # Loss
                                 if hp.loss_type=="l1": # L1 loss
                                     self.loss1 = tf.abs(self.outputs1 - self.y[i])
@@ -64,24 +71,25 @@ class Graph:
                                     self.loss1 *= tf.to_float(tf.not_equal(self.y[i], 0.))
                                     self.loss2 *= tf.to_float(tf.not_equal(self.z[i], 0.))
                                 
-                                self.mean_loss1 = tf.reduce_mean(self.loss1)
-                                self.mean_loss2 = tf.reduce_mean(self.loss2)
-                                self.mean_loss = self.mean_loss1 + self.mean_loss2   
+                                self.loss1 = tf.reduce_mean(self.loss1)
+                                self.loss2 = tf.reduce_mean(self.loss2)
+                                self.loss = self.loss1 + self.loss2   
                                 
-                                self.losses.append(self.mean_loss)
-                                self.grads_and_vars = self.optimizer.compute_gradients(self.mean_loss) 
+                                self.losses.append(self.loss)
+                                self.grads_and_vars = self.optimizer.compute_gradients(self.loss) 
                                 self.grads_and_vars_list.append(self.grads_and_vars)    
                 
                 with tf.device('/cpu:0'):
                     # Aggregate losses, then calculate average loss.
-                    self.loss = tf.add_n(self.losses) / len(self.losses)
+                    self.mean_loss = tf.add_n(self.losses) / len(self.losses)
                      
                     #Aggregate gradients, then calculate average gradients.
                     self.mean_grads_and_vars = []
                     for grads_and_vars in zip(*self.grads_and_vars_list):
                         grads = []
                         for grad, var in grads_and_vars:
-                            grads.append(tf.expand_dims(grad, 0))
+                            if grad is not None:
+                                grads.append(tf.expand_dims(grad, 0))
                         mean_grad = tf.reduce_mean(tf.concat(grads, 0), 0) #()
                         self.mean_grads_and_vars.append((mean_grad, var))
                  
@@ -90,13 +98,13 @@ class Graph:
                 self.train_op = self.optimizer.apply_gradients(self.mean_grads_and_vars, self.global_step)
                  
                 # Summmary 
-                tf.summary.scalar('loss', self.loss)
+                tf.summary.scalar('mean_loss', self.mean_loss)
                 self.merged = tf.summary.merge_all()
                 
             else: # Evaluation
                 self.x = tf.placeholder(tf.int32, shape=(None, None))
-                self.decoder_inputs = tf.placeholder(tf.float32, shape=(None, None, hp.n_mels*hp.r))
-                
+                self.y = tf.placeholder(tf.float32, shape=(None, None, hp.n_mels*hp.r))
+                self.decoder_inputs = shift_by_one(self.y)
                 with tf.variable_scope('net'):
                     # Encoder
                     self.memory = encode(self.x, is_training=is_training) # (N, T, E)
@@ -114,7 +122,7 @@ def main():
          
         # Training 
         sv = tf.train.Supervisor(logdir=hp.logdir,
-                                 save_model_secs=0)
+                                 save_model_secs=600)
         with sv.managed_session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
             for epoch in range(1, hp.num_epochs+1): 
                 if sv.should_stop(): break

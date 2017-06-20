@@ -7,10 +7,14 @@ https://www.github.com/kyubyong/tacotron
 
 class Hyperparams:
     '''Hyper parameters'''
+    # mode
+    sanity_check = True
+    
     # data
     text_file = 'WEB/text.csv'
     sound_fpath = 'WEB'
-    max_len = 100 # maximum length of text
+    max_len = 100 if not sanity_check else 30 # maximum length of text
+    min_len = 10 if not sanity_check else 20 # minimum length of text
     
     # signal processing
     sr = 22050 # Sampling rate. Paper => 24000
@@ -30,14 +34,15 @@ class Hyperparams:
     decoder_num_banks = 8
     num_highwaynet_blocks = 4
     r = 5 # Reduction factor. Paper => 2, 3, 5
-    norm_type = "bn"  # a normalizer function. value: bn, ln, or ins
+    norm_type = 'ins'  # a normalizer function. value: bn, ln, ins, or None
     
     # training scheme
-    lr = 0.001 # Paper => Exponential decay
-    logdir = "logdir"
+    lr = 0.0005 # Paper => Exponential decay
+    logdir = "logdir" if not sanity_check else "logdir_s"
+    outputdir = 'samples' if not sanity_check else "samples_s"
     batch_size = 32
-    num_epochs = 200 # Paper => 2M global steps!
-    loss_type = "l1" # Or you can test "l2"
+    num_epochs = 10000 if not sanity_check else 30 # Paper => 2M global steps!
+    loss_type = "l2" # Or you can test "l2"
     num_samples = 32
     
     # etc

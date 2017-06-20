@@ -6,20 +6,21 @@ https://www.github.com/kyubyong/tacotron
 '''
 
 from __future__ import print_function
+
 import codecs
 import copy
 import os
-
-import tensorflow as tf
-import numpy as np
 
 import librosa
 from scipy.io.wavfile import write
 
 from hyperparams import Hyperparams as hp
+import numpy as np
 from prepro import *
+import tensorflow as tf
 from train import Graph
 from utils import *
+
 
 def eval(): 
     # Load graph
@@ -45,18 +46,16 @@ def eval():
             for j in range(timesteps):
                 _outputs1 = sess.run(g.outputs1, {g.x: X, g.y: outputs1})
                 outputs1[:, j, :] = _outputs1[:, j, :]
-
             outputs2 = sess.run(g.outputs2, {g.outputs1: outputs1})
 
     # Generate wav files
-    if not os.path.exists('samples'): os.mkdir('samples') 
-    with codecs.open('samples/text.txt', 'w', 'utf-8') as fout:
+    if not os.path.exists(hp.outputdir): os.mkdir(hp.outputdir) 
+    with codecs.open(hp.outputdir + '/text.txt', 'w', 'utf-8') as fout:
         for i, (x, s) in enumerate(zip(X, outputs2)):
             # write text
             fout.write(str(i) + "\t" + "".join(idx2char[idx] for idx in np.fromstring(x, np.int32) if idx != 0) + "\n")
-
-            # restore shape
-            s = restore_shape(s, hp.win_length//hp.hop_length, hp.r) 
+            
+            s = restore_shape(s, 4, 5)
                          
             # generate wav files
             if hp.use_log_magnitude:
@@ -64,7 +63,7 @@ def eval():
             else:
                 s = np.where(s < 0, 0, s)
                 audio = spectrogram2wav(s**hp.power)
-            write("samples/{}_{}.wav".format(mname, i), hp.sr, audio)     
+            write(hp.outputdir + "/{}_{}.wav".format(mname, i), hp.sr, audio)     
                                           
 if __name__ == '__main__':
     eval()

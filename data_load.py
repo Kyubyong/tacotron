@@ -8,13 +8,14 @@ https://www.github.com/kyubyong/tacotron
 from functools import wraps
 import threading
 
-import tensorflow as tf
-import numpy as np
 from tensorflow.python.platform import tf_logging as logging
 
 from hyperparams import Hyperparams as hp
-from utils import *
+import numpy as np
 from prepro import *
+import tensorflow as tf
+from utils import *
+
 
 # Adapted from the `sugartensor` code.
 # https://github.com/buriburisuri/sugartensor/blob/master/sugartensor/sg_queue.py
@@ -155,6 +156,7 @@ def get_batch():
                                             dtypes=[tf.int32, tf.float32, tf.float32],
                                             capacity=128,
                                             num_threads=32)
+        
         # create batch queues
         x, y, z = tf.train.batch([x, y, z],
                                 shapes=[(None,), (None, hp.n_mels*hp.r), (None, (1+hp.n_fft//2)*hp.r)],
@@ -165,5 +167,5 @@ def get_batch():
         
         if hp.use_log_magnitude:
             z = tf.log(z+1e-10)
-
+            
     return x, y, z, num_batch

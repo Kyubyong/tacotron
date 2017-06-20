@@ -5,12 +5,15 @@ By kyubyong park. kbpark.linguist@gmail.com.
 https://www.github.com/kyubyong/tacotron
 '''
 from __future__ import print_function
-import tensorflow as tf
-import numpy as np
-import librosa
 
 import copy
+
+import librosa
+
 from hyperparams import Hyperparams as hp
+import numpy as np
+import tensorflow as tf
+
 
 def get_spectrograms(sound_file): 
     '''Extracts melspectrogram and log magnitude from given `sound_file`.
@@ -47,7 +50,6 @@ def shift_by_one(inputs):
       
     Args:
       inputs: A 3d tensor with shape of [N, T, C]
-    
     Returns:
       A 3d tensor with the same shape and dtype as `inputs`.
     '''
