@@ -6,22 +6,27 @@ https://www.github.com/kyubyong/tacotron
 '''
 
 from __future__ import print_function
-import tensorflow as tf
-import numpy as np
-import librosa
 
 import os
+
+import librosa
 from tqdm import tqdm
 
-from hyperparams import Hyperparams as hp
-from prepro import *
-from networks import encode, decode1, decode2
-from modules import *
 from data_load import get_batch
-from utils import shift_by_one
+from hyperparams import Hyperparams as hp
+from modules import *
+from networks import encode, decode1, decode2
+import numpy as np
+from prepro import *
 from prepro import load_vocab
-                     
+import tensorflow as tf
+from utils import shift_by_one
+
+
 class Graph:
+    # Load vocabulary 
+    char2idx, idx2char = load_vocab()
+    
     def __init__(self, is_training=True):
         self.graph = tf.Graph()
         
@@ -33,12 +38,15 @@ class Graph:
                 self.y = tf.placeholder(tf.float32, shape=(None, None, hp.n_mels*hp.r))
 
             self.decoder_inputs = shift_by_one(self.y)
+            
             with tf.variable_scope("net"):
                 # Encoder
                 self.memory = encode(self.x, is_training=is_training) # (N, T, E)
-
-                # Decoder
-                self.outputs1 = decode1(self.decoder_inputs, self.memory, is_training=is_training) # (N, T', hp.n_mels*hp.r)
+                
+                # Decoder 
+                self.outputs1 = decode1(self.decoder_inputs, 
+                                         self.memory,
+                                         is_training=is_training) # (N, T', hp.n_mels*hp.r)
                 self.outputs2 = decode2(self.outputs1, is_training=is_training) # (N, T', (1+hp.n_fft//2)*hp.r)
              
             if is_training:  
@@ -57,8 +65,23 @@ class Graph:
                 
                 self.mean_loss1 = tf.reduce_mean(self.loss1)
                 self.mean_loss2 = tf.reduce_mean(self.loss2)
-                self.mean_loss = self.mean_loss1 + self.mean_loss2    
-               
+                self.mean_loss = self.mean_loss1 + self.mean_loss2 
+                
+                # Logging  
+                ## histograms
+                self.expected1_h = tf.reduce_mean(tf.reduce_mean(self.y, -1), 0)
+                self.got1_h = tf.reduce_mean(tf.reduce_mean(self.outputs1, -1),0)
+                
+                self.expected2_h = tf.reduce_mean(tf.reduce_mean(self.z, -1), 0)
+                self.got2_h = tf.reduce_mean(tf.reduce_mean(self.outputs2, -1),0)
+                
+                ## images
+                self.expected1_i = tf.expand_dims(tf.reduce_mean(self.y[:1], -1, keep_dims=True), 1)
+                self.got1_i = tf.expand_dims(tf.reduce_mean(self.outputs1[:1], -1, keep_dims=True), 1)
+                
+                self.expected2_i = tf.expand_dims(tf.reduce_mean(self.z[:1], -1, keep_dims=True), 1)
+                self.got2_i = tf.expand_dims(tf.reduce_mean(self.outputs2[:1], -1, keep_dims=True), 1)
+                                                
                 # Training Scheme
                 self.global_step = tf.Variable(0, name='global_step', trainable=False)
                 self.optimizer = tf.train.AdamOptimizer(learning_rate=hp.lr)
@@ -68,6 +91,17 @@ class Graph:
                 tf.summary.scalar('mean_loss1', self.mean_loss1)
                 tf.summary.scalar('mean_loss2', self.mean_loss2)
                 tf.summary.scalar('mean_loss', self.mean_loss)
+                
+                tf.summary.histogram('expected_values1', self.expected1_h)
+                tf.summary.histogram('gotten_values1', self.got1_h)
+                tf.summary.histogram('expected_values2', self.expected2_h)
+                tf.summary.histogram('gotten values2', self.got2_h)
+                                
+                tf.summary.image("expected_values1", self.expected1_i*255)
+                tf.summary.image("gotten_values1", self.got1_i*255)
+                tf.summary.image("expected_values2", self.expected2_i*255)
+                tf.summary.image("gotten_values2", self.got2_i*255)
+                
                 self.merged = tf.summary.merge_all()
          
 def main():   

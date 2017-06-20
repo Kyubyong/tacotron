@@ -1,9 +1,12 @@
 # A (Heavily Documented) TensorFlow Implementation of Tacotron: A Fully End-to-End Text-To-Speech Synthesis Model
 
-## **Warning**
-  * This is not a complete project, per se. However, I guess we're near where we wanted to reach. Be patient and wait until we get there.
-
 ## **Major History**
+  * June 21, 2017. Fourth draft. 
+    * **I've updated the code for TF 1.1 to TF 1.2.** Turns out that TF 1.2 has a new api for attention wrapper and more detailed options.
+    * I've added a sanity check option to the `hyperparams.py` file. Basically, it's purpose is to find out if our model is able to learn a handful of training data wihtout caring about generalization. For that, we will train on a single mini-batch (32 samples) over and over again, and generate samples based on the same text. I observed a quite smooth training curve for as below, and after around 18K global steps it started to generate recognizable sounds. The sample results after 36K steps are available in the `logdir_s` folder. It took around seven hours on a single gtx 1080. The training curve looks like this.
+<img src="fig/mean_loss.png">
+    * The pretrained files can be downloaded from [here](https://u42868014.dl.dropboxusercontent.com/u/42868014/tacotron/logdir_s.zip)
+
   * June 4, 2017. Third draft. 
     * Some people reported they gained promising results, based on my code. Among them are, [@ggsonic](https://www.github.com/ggsonic), [@chief7](https://www.github.com/chief7). To check relevant discussions, see this [discussion](https://www.github.com/Kyubyong/tacotron/issues/30), or their repo. 
     * According @ggsonic, instance normalization worked better than batch normalization.
@@ -19,8 +22,9 @@
 
 ## Requirements
   * NumPy >= 1.11.1
-  * TensorFlow >= 1.1
+  * TensorFlow == 1.2
   * librosa
+  * tqdm
 
 ## Data
 Since the [original paper](https://arxiv.org/abs/1703.10135) was based on their internal data, I use a freely available one, instead.
