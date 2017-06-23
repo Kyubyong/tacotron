@@ -109,12 +109,9 @@ def decode2(inputs, is_training=True, scope="decoder2", reuse=None):
         where C'' = (1+hp.n_fft//2)*hp.r.
     '''
     with tf.variable_scope(scope, reuse=reuse):
-        # Decoder pre-net
-        prenet_out = prenet(inputs, is_training=is_training) # (N, T'', E/2)
-        
         # Decoder Post-processing net = CBHG
         ## Conv1D bank
-        dec = conv1d_banks(prenet_out, K=hp.decoder_num_banks, is_training=is_training) # (N, T', E*K/2)
+        dec = conv1d_banks(inputs, K=hp.decoder_num_banks, is_training=is_training) # (N, T', E*K/2)
          
         ## Max pooling
         dec = tf.layers.max_pooling1d(dec, 2, 1, padding="same") # (N, T', E*K/2)
