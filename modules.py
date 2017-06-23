@@ -126,7 +126,7 @@ def normalize(inputs,
     else:
         outputs = inputs
     
-    if activation_fn:
+    if activation_fn and type != "bn":
         outputs = activation_fn(outputs)
                 
     return outputs
