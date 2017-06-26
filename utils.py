@@ -25,7 +25,7 @@ def get_spectrograms(sound_file):
       Transposed magnitude: A 2d array.Has shape of (T, 1+hp.n_fft//2)
     '''
     # Loading sound file
-    y, sr = librosa.load(sound_file, sr=None) # or set sr to hp.sr.
+    y, sr = librosa.load(sound_file, sr=hp.sr) # or set sr to hp.sr.
     
     # stft. D: (1+n_fft//2, T)
     D = librosa.stft(y=y,
