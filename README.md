@@ -48,7 +48,7 @@ Since the [original paper](https://arxiv.org/abs/1703.10135) was based on their 
 ## Training
   * STEP 1. Adjust hyper parameters in `hyperparams.py` if necessary.
   * STEP 2. Download and extract [the audio data](https://dl.dropboxusercontent.com/u/42868014/WEB.zip) and its [text](https://dl.dropboxusercontent.com/u/42868014/text.csv).
-  * STEP 3. Run `train.py`. or `train_multiple_gpus.py` if you have more than one gpu.
+  * STEP 3. Run `train.py`. or `train_multi_gpus.py` if you have more than one gpu.
 
 ## Sample Synthesis
   * Run `eval.py` to get samples.
