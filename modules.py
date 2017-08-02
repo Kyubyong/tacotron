@@ -83,7 +83,7 @@ def normalize(inputs,
                 inputs = tf.expand_dims(inputs, axis=1)
                 inputs = tf.expand_dims(inputs, axis=2)
             elif inputs_rank==3:
-                inputs = tf.expand_dims(inputs, axis=1)
+                inputs = tf.expand_dims(inputs, axis=-1)
             
             outputs = tf.contrib.layers.batch_norm(inputs=inputs, 
                                                decay=decay,
@@ -99,7 +99,7 @@ def normalize(inputs,
             if inputs_rank==2:
                 outputs = tf.squeeze(outputs, axis=[1, 2])
             elif inputs_rank==3:
-                outputs = tf.squeeze(outputs, axis=1)
+                outputs = tf.squeeze(outputs, axis=-1)
         else: # fallback to naive batch norm
             outputs = tf.contrib.layers.batch_norm(inputs=inputs, 
                                                decay=decay,
