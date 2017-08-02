@@ -35,7 +35,6 @@ Since the [original paper](https://arxiv.org/abs/1703.10135) was based on their 
 
 ## File description
   * `hyperparams.py` includes all hyper parameters that are needed.
-  * `prepare_pavoque.py` creates sliced sound files from raw sound data, and constructs necessary information.
   * `prepro.py` loads vocabulary, training/evaluation data.
   * `data_load.py` loads data and put them in queues so multiple mini-bach data are generated in parallel.
   * `utils.py` has several custom operational functions.
