@@ -3,7 +3,7 @@
 ## **Major History**
   * June 21, 2017. Fourth draft. 
     * **I've updated the code for TF 1.1 to TF 1.2.** Turns out that TF 1.2 has a new api for attention wrapper and more detailed options.
-    * I've added a sanity check option to the `hyperparams.py` file. Basically, it's purpose is to find out if our model is able to learn a handful of training data wihtout caring about generalization. For that, the training was done on a single mini-batch (32 samples) over and over again, and sample generation was based on the same text. I observed a quite smooth training curve for as below, and after around 18K global steps it started to generate recognizable sounds. The sample results after 36K steps are available in the `logdir_s` folder. It took around seven hours on a single gtx 1080. The pretrained files can be downloaded from [here](https://u42868014.dl.dropboxusercontent.com/u/42868014/tacotron/logdir_s.zip). The training curve looks like this.
+    * I've added a sanity check option to the `hyperparams.py` file. Basically, it's purpose is to find out if our model is able to learn a handful of training data wihtout caring about generalization. For that, the training was done on a single mini-batch (32 samples) over and over again, and sample generation was based on the same text. I observed a quite smooth training curve for as below, and after around 18K global steps it started to generate recognizable sounds. The sample results after 36K steps are available in the `logdir_s` folder. It took around seven hours on a single gtx 1080. The pretrained files can be downloaded from [here](https://www.dropbox.com/s/85kr8b1a2pnky6h/logdir_s.zip?dl=0). The training curve looks like this.
 
 <img src="fig/mean_loss.png">
 
@@ -29,7 +29,7 @@
 ## Data
 Since the [original paper](https://arxiv.org/abs/1703.10135) was based on their internal data, I use a freely available one, instead.
 
-[The World English Bible](https://en.wikipedia.org/wiki/World_English_Bible) is a public domain update of the American Standard Version of 1901 into modern English. Its text and audio recordings are freely available [here](http://www.audiotreasure.com/webindex.htm). Unfortunately, however, each of the audio files matches a chapter, not a verse, so is too long for many machine learning tasks. I had someone slice them by verse manually. You can download [the audio data](https://dl.dropboxusercontent.com/u/42868014/WEB.zip) and its [text](https://dl.dropboxusercontent.com/u/42868014/text.csv) from my dropbox.
+[The World English Bible](https://en.wikipedia.org/wiki/World_English_Bible) is a public domain update of the American Standard Version of 1901 into modern English. Its text and audio recordings are freely available [here](http://www.audiotreasure.com/webindex.htm). Unfortunately, however, each of the audio files matches a chapter, not a verse, so is too long for many machine learning tasks. I had someone slice them by verse manually. You can download [the audio data](https://www.dropbox.com/s/nde56czgda8q77e/WEB.zip?dl=0) and its [text](https://www.dropbox.com/s/lcfhs1kk9shvypj/text.csv?dl=0) from my dropbox.
 
 
 
@@ -46,7 +46,7 @@ Since the [original paper](https://arxiv.org/abs/1703.10135) was based on their 
 
 ## Training
   * STEP 1. Adjust hyper parameters in `hyperparams.py` if necessary.
-  * STEP 2. Download and extract [the audio data](https://dl.dropboxusercontent.com/u/42868014/WEB.zip) and its [text](https://dl.dropboxusercontent.com/u/42868014/text.csv).
+  * STEP 2. Download and extract [the audio data](https://www.dropbox.com/s/nde56czgda8q77e/WEB.zip?dl=0) and its [text](https://www.dropbox.com/s/lcfhs1kk9shvypj/text.csv?dl=0).
   * STEP 3. Run `train.py`. or `train_multi_gpus.py` if you have more than one gpu.
 
 ## Sample Synthesis
