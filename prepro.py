@@ -29,7 +29,7 @@ def create_train_data():
     reader = csv.reader(codecs.open(hp.text_file, 'rb', 'utf-8'))
     for row in reader:
         sound_fname, text, duration = row
-        sound_file = hp.sound_fpath + "/" + sound_fname + ".wav"
+        sound_file = os.path.join(hp.sound_fpath, sound_fname + ".wav")
         text = re.sub(r"[^ a-z']", "", text.strip().lower())
          
         if hp.min_len <= len(text) <= hp.max_len:
