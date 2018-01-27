@@ -9,135 +9,125 @@ from __future__ import print_function
 
 from hyperparams import Hyperparams as hp
 from modules import *
-from prepro import load_vocab
 import tensorflow as tf
 
 
-def encode(inputs, is_training=True, scope="encoder", reuse=None):
+def encoder(inputs, is_training=True, scope="encoder", reuse=None):
     '''
     Args:
-      inputs: A 2d tensor with shape of [N, T], dtype of int32.
-      seqlens: A 1d tensor with shape of [N,], dtype of int32.
-      masks: A 3d tensor with shape of [N, T, 1], dtype of float32.
+      inputs: A 2d tensor with shape of [N, T_x, E], with dtype of int32. Encoder inputs.
       is_training: Whether or not the layer is in training mode.
       scope: Optional scope for `variable_scope`
       reuse: Boolean, whether to reuse the weights of a previous layer
         by the same name.
     
     Returns:
-      A collection of Hidden vectors, whose shape is (N, T, E).
+      A collection of Hidden vectors. So-called memory. Has the shape of (N, T_x, E).
     '''
-    with tf.variable_scope(scope, reuse=reuse):
-        # Load vocabulary 
-        char2idx, idx2char = load_vocab()
-        
-        # Character Embedding
-        inputs = embed(inputs, len(char2idx), hp.embed_size) # (N, T, E)  
-        
+    with tf.variable_scope(scope, reuse=reuse): 
         # Encoder pre-net
-        prenet_out = prenet(inputs, is_training=is_training) # (N, T, E/2)
+        prenet_out = prenet(inputs, is_training=is_training) # (N, T_x, E/2)
         
         # Encoder CBHG 
-        ## Conv1D bank 
-        enc = conv1d_banks(prenet_out, K=hp.encoder_num_banks, is_training=is_training) # (N, T, K * E / 2)
+        ## Conv1D banks
+        enc = conv1d_banks(prenet_out, K=hp.encoder_num_banks, is_training=is_training) # (N, T_x, K*E/2)
         
-        ### Max pooling
-        enc = tf.layers.max_pooling1d(enc, 2, 1, padding="same")  # (N, T, K * E / 2)
+        ## Max pooling
+        enc = tf.layers.max_pooling1d(enc, pool_size=2, strides=1, padding="same")  # (N, T_x, K*E/2)
           
-        ### Conv1D projections
-        enc = conv1d(enc, hp.embed_size//2, 3, scope="conv1d_1") # (N, T, E/2)
-        enc = normalize(enc, type=hp.norm_type, is_training=is_training, 
-                            activation_fn=tf.nn.relu, scope="norm1")
-        enc = conv1d(enc, hp.embed_size//2, 3, scope="conv1d_2") # (N, T, E/2)
-        enc = normalize(enc, type=hp.norm_type, is_training=is_training, 
-                            activation_fn=None, scope="norm2")
-        enc += prenet_out # (N, T, E/2) # residual connections
+        ## Conv1D projections
+        enc = conv1d(enc, filters=hp.embed_size//2, size=3, scope="conv1d_1") # (N, T_x, E/2)
+        enc = bn(enc, is_training=is_training, activation_fn=tf.nn.relu, scope="conv1d_1")
+
+        enc = conv1d(enc, filters=hp.embed_size // 2, size=3, scope="conv1d_2")  # (N, T_x, E/2)
+        enc = bn(enc, is_training=is_training, scope="conv1d_2")
+
+        enc += prenet_out # (N, T_x, E/2) # residual connections
           
-        ### Highway Nets
+        ## Highway Nets
         for i in range(hp.num_highwaynet_blocks):
             enc = highwaynet(enc, num_units=hp.embed_size//2, 
-                                 scope='highwaynet_{}'.format(i)) # (N, T, E/2)
+                                 scope='highwaynet_{}'.format(i)) # (N, T_x, E/2)
 
-        ### Bidirectional GRU
-        memory = gru(enc, hp.embed_size//2, True) # (N, T, E)
+        ## Bidirectional GRU
+        memory = gru(enc, num_units=hp.embed_size//2, bidirection=True) # (N, T_x, E)
     
     return memory
         
-def decode1(decoder_inputs, memory, is_training=True, scope="decoder1", reuse=None):
+def decoder1(inputs, memory, is_training=True, scope="decoder1", reuse=None):
     '''
     Args:
-      decoder_inputs: A 3d tensor with shape of [N, T', C'], where C'=hp.n_mels*hp.r, 
-        dtype of float32. Shifted melspectrogram of sound files. 
-      memory: A 3d tensor with shape of [N, T, C], where C=hp.embed_size.
+      inputs: A 3d tensor with shape of [N, T_y/r, n_mels(*r)]. Shifted log melspectrogram of sound files.
+      memory: A 3d tensor with shape of [N, T_x, E].
       is_training: Whether or not the layer is in training mode.
       scope: Optional scope for `variable_scope`
       reuse: Boolean, whether to reuse the weights of a previous layer
         by the same name.
         
     Returns
-      Predicted melspectrogram tensor with shape of [N, T', C'].
+      Predicted log melspectrogram tensor with shape of [N, T_y/r, n_mels*r].
     '''
     with tf.variable_scope(scope, reuse=reuse):
         # Decoder pre-net
-        dec = prenet(decoder_inputs, is_training=is_training) # (N, T', E/2)
-        
+        inputs = prenet(inputs, is_training=is_training)  # (N, T_y/r, E/2)
+
         # Attention RNN
-        dec = attention_decoder(dec, memory, num_units=hp.embed_size) # (N, T', E)
+        dec, state = attention_decoder(inputs, memory, num_units=hp.embed_size) # (N, T_y/r, E)
+
+        ## for attention monitoring
+        alignments = tf.transpose(state.alignment_history.stack(),[1,2,0])
 
         # Decoder RNNs
-        dec += gru(dec, hp.embed_size, False, scope="decoder_gru1") # (N, T', E)
-        dec += gru(dec, hp.embed_size, False, scope="decoder_gru2") # (N, T', E)
+        dec += gru(dec, hp.embed_size, bidirection=False, scope="decoder_gru1") # (N, T_y/r, E)
+        dec += gru(dec, hp.embed_size, bidirection=False, scope="decoder_gru2") # (N, T_y/r, E)
           
-        # Outputs => (N, T', hp.n_mels*hp.r)
-        out_dim = decoder_inputs.get_shape().as_list()[-1]
-        outputs = tf.layers.dense(dec, out_dim) 
+        # Outputs => (N, T_y/r, n_mels*r)
+        mel_hats = tf.layers.dense(dec, hp.n_mels*hp.r)
     
-    return outputs
+    return mel_hats, alignments
 
-def decode2(inputs, is_training=True, scope="decoder2", reuse=None):
-    '''
+def decoder2(inputs, is_training=True, scope="decoder2", reuse=None):
+    '''Decoder Post-processing net = CBHG
     Args:
-      inputs: A 3d tensor with shape of [N, T', C'], where C'=hp.n_mels*hp.r, 
-        dtype of float32. Log magnitude spectrogram of sound files.
+      inputs: A 3d tensor with shape of [N, T_y/r, n_mels*r]. Log magnitude spectrogram of sound files.
+        It is recovered to its original shape.
       is_training: Whether or not the layer is in training mode.  
       scope: Optional scope for `variable_scope`
       reuse: Boolean, whether to reuse the weights of a previous layer
         by the same name.
         
     Returns
-      Predicted magnitude spectrogram tensor with shape of [N, T', C''], 
-        where C'' = (1+hp.n_fft//2)*hp.r.
+      Predicted linear spectrogram tensor with shape of [N, T_y, 1+n_fft//2].
     '''
     with tf.variable_scope(scope, reuse=reuse):
-        # Decoder pre-net
-        prenet_out = prenet(inputs, is_training=is_training) # (N, T'', E/2)
-        
-        # Decoder Post-processing net = CBHG
-        ## Conv1D bank
-        dec = conv1d_banks(prenet_out, K=hp.decoder_num_banks, is_training=is_training) # (N, T', E*K/2)
+        # Restore shape -> (N, Ty, n_mels)
+        inputs = tf.reshape(inputs, [tf.shape(inputs)[0], -1, hp.n_mels])
+
+        # Conv1D bank
+        dec = conv1d_banks(inputs, K=hp.decoder_num_banks, is_training=is_training) # (N, T_y, E*K/2)
          
-        ## Max pooling
-        dec = tf.layers.max_pooling1d(dec, 2, 1, padding="same") # (N, T', E*K/2)
-         
+        # Max pooling
+        dec = tf.layers.max_pooling1d(dec, pool_size=2, strides=1, padding="same") # (N, T_y, E*K/2)
+
         ## Conv1D projections
-        dec = conv1d(dec, hp.embed_size, 3, scope="conv1d_1") # (N, T', E)
-        dec = normalize(dec, type=hp.norm_type, is_training=is_training, 
-                            activation_fn=tf.nn.relu, scope="norm1")
-        dec = conv1d(dec, hp.embed_size//2, 3, scope="conv1d_2") # (N, T', E/2)
-        dec = normalize(dec, type=hp.norm_type, is_training=is_training, 
-                            activation_fn=None, scope="norm2")
-        dec += prenet_out
+        dec = conv1d(dec, filters=hp.embed_size // 2, size=3, scope="conv1d_1")  # (N, T_x, E/2)
+        dec = bn(dec, is_training=is_training, activation_fn=tf.nn.relu, scope="conv1d_1")
+
+        dec = conv1d(dec, filters=hp.n_mels, size=3, scope="conv1d_2")  # (N, T_x, E/2)
+        dec = bn(dec, is_training=is_training, scope="conv1d_2")
+
+        # Extra affine transformation for dimensionality sync
+        dec = tf.layers.dense(dec, hp.embed_size//2) # (N, T_y, E/2)
          
-        ## Highway Nets
+        # Highway Nets
         for i in range(4):
             dec = highwaynet(dec, num_units=hp.embed_size//2, 
-                                 scope='highwaynet_{}'.format(i)) # (N, T, E/2)
+                                 scope='highwaynet_{}'.format(i)) # (N, T_y, E/2)
          
-        ## Bidirectional GRU    
-        dec = gru(dec, hp.embed_size//2, True) # (N, T', E)  
+        # Bidirectional GRU    
+        dec = gru(dec, hp.embed_size//2, bidirection=True) # (N, T_y, E)
         
-        # Outputs => (N, T', (1+hp.n_fft//2)*hp.r)
-        out_dim = (1+hp.n_fft//2)*hp.r
-        outputs = tf.layers.dense(dec, out_dim)
-    
+        # Outputs => (N, T_y, 1+n_fft//2)
+        outputs = tf.layers.dense(dec, 1+hp.n_fft//2)
+
     return outputs

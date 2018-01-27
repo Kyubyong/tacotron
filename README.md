@@ -1,56 +1,94 @@
 # A (Heavily Documented) TensorFlow Implementation of Tacotron: A Fully End-to-End Text-To-Speech Synthesis Model
 
-## **Major History**
-  * June 21, 2017. Fourth draft. 
-    * **I've updated the code for TF 1.1 to TF 1.2.** Turns out that TF 1.2 has a new api for attention wrapper and more detailed options.
-    * I've added a sanity check option to the `hyperparams.py` file. Basically, it's purpose is to find out if our model is able to learn a handful of training data wihtout caring about generalization. For that, the training was done on a single mini-batch (32 samples) over and over again, and sample generation was based on the same text. I observed a quite smooth training curve for as below, and after around 18K global steps it started to generate recognizable sounds. The sample results after 36K steps are available in the `logdir_s` folder. It took around seven hours on a single gtx 1080. The pretrained files can be downloaded from [here](https://www.dropbox.com/s/85kr8b1a2pnky6h/logdir_s.zip?dl=0). The training curve looks like this.
-
-<img src="fig/mean_loss.png">
-
-  * June 4, 2017. Third draft. 
-    * Some people reported they gained promising results, based on my code. Among them are, [@ggsonic](https://www.github.com/ggsonic), [@chief7](https://www.github.com/chief7). To check relevant discussions, see this [discussion](https://www.github.com/Kyubyong/tacotron/issues/30), or their repo. 
-    * According @ggsonic, instance normalization worked better than batch normalization.
-    * @chief7 trained on pavoque data, a German corpus spoken by a single male actor. He said that instance normalization and zero-masking are good choices.
-    * Yuxuan, the first author of the paer, advised me to do sanity-check first with small data, and to adjust hyperparemters since our dataset is different from his. I really appreciate his tips, and hope this would help you.
-    * [Alex's repo](https://github.com/barronalex/Tacotron), which is another implementation of Tacotron, seems to be successful in getting promising results with some small dataset. He's working on a big one.
-  * June 2, 2017. 
-    * Added `train_multiple_gpus.py` for multiple GPUs.
-  * June 1, 2017. Second draft. 
-    * I corrected some mistakes with the help of several contributors (THANKS!), and re-factored source codes so that they are more readable and modular. So far, I couldn't get any promising results.
-  * May 17, 2017. First draft. 
-    * You can run it following the steps below, but good results are not guaranteed. I'll be working on debugging this weekend. (**Code reviews and/or contributions are more than welcome!**)
-
 ## Requirements
+
   * NumPy >= 1.11.1
-  * TensorFlow == 1.2
+  * TensorFlow >= 1.3
   * librosa
   * tqdm
+  * matplotlib
+  * scipy
 
 ## Data
-Since the [original paper](https://arxiv.org/abs/1703.10135) was based on their internal data, I use a freely available one, instead.
 
-[The World English Bible](https://en.wikipedia.org/wiki/World_English_Bible) is a public domain update of the American Standard Version of 1901 into modern English. Its text and audio recordings are freely available [here](http://www.audiotreasure.com/webindex.htm). Unfortunately, however, each of the audio files matches a chapter, not a verse, so is too long for many machine learning tasks. I had someone slice them by verse manually. You can download [the audio data](https://www.dropbox.com/s/nde56czgda8q77e/WEB.zip?dl=0) and its [text](https://www.dropbox.com/s/lcfhs1kk9shvypj/text.csv?dl=0) from my dropbox.
+<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Nick_Offerman_at_UMBC_%28cropped%29.jpg/440px-Nick_Offerman_at_UMBC_%28cropped%29.jpg" height="200" align="right">
+<img src="https://image.shutterstock.com/z/stock-vector-lj-letters-four-colors-in-abstract-background-logo-design-identity-in-circle-alphabet-letter-418687846.jpg" height="200" align="right">
 
+We train the model on two different speech datasets.
+  1. [LJ Speech Dataset](https://keithito.com/LJ-Speech-Dataset/)
+  2. [Nick Offerman's Audiobooks](https://www.audible.com.au/search?searchNarrator=Nick+Offerman)
+ 
+LJ Speech Dataset is recently widely used as a benchmark dataset in the TTS task because it is publicly available. It has 24 hours of reasonable quality samples.
+Nick's audiobooks are additionally used to see if the model can learn even with less data, variable speech samples. They are 18 hours long.
 
-
-## File description
-  * `hyperparams.py` includes all hyper parameters that are needed.
-  * `prepro.py` loads vocabulary, training/evaluation data.
-  * `data_load.py` loads data and put them in queues so multiple mini-bach data are generated in parallel.
-  * `utils.py` has several custom operational functions.
-  * `modules.py` contains building blocks for encoding/decoding networks.
-  * `networks.py` has three core networks, that is, encoding, decoding, and postprocessing network.
-  * `train.py` is for training.
-  * `eval.py` is for sample synthesis.
-  
 
 ## Training
-  * STEP 1. Adjust hyper parameters in `hyperparams.py` if necessary.
-  * STEP 2. Download and extract [the audio data](https://www.dropbox.com/s/nde56czgda8q77e/WEB.zip?dl=0) and its [text](https://www.dropbox.com/s/lcfhs1kk9shvypj/text.csv?dl=0).
-  * STEP 3. Run `train.py`. or `train_multi_gpus.py` if you have more than one gpu.
+  * STEP 0. Download [LJ Speech Dataset](https://keithito.com/LJ-Speech-Dataset/) or prepare your own data.
+  * STEP 1. Adjust hyper parameters in `hyperparams.py`.
+  * STEP 2. Run `python train.py`.
+  * STEP 3. Run `python eval.py` regularly during training.
 
 ## Sample Synthesis
-  * Run `eval.py` to get samples.
 
-### Acknowledgements
-I would like to show my respect to Dave, the host of www.audiotreasure.com and the reader of the audio files.
+We generate speech samples based on [Harvard Sentences](http://www.cs.columbia.edu/~hgs/audio/harvard.html) as the original paper does. It is already included in the repo.
+
+  * Run `python synthesize.py` and check the files in `samples`.
+
+## Training Curve
+
+<img src="fig/training_curve.png">
+
+
+## Attention Plot
+
+<img src="fig/attention.gif">
+
+## Generated Samples
+
+  * [LJ at 200k steps](https://soundcloud.com/kyubyong-park/sets/tacotron_lj_200k)
+  * [Nick at 215k steps](https://soundcloud.com/kyubyong-park/sets/tacotron_nick_215k)
+
+## Notes
+
+  * It's important to monitor the attention plots during training.  If the attention plots look good (alignment looks linear), and then they look bad (the plots will look similar to what they looked like in the begining of training), then training has gone awry and most likely will need to be restarted from a checkpoint where the attention looked good, because we've learned that it's unlikely that the loss will ever recover.  This deterioration of attention will correspond with a spike in the loss.
+
+  * In the original paper, the authors said, "An important trick we discovered was predicting multiple, non-overlapping output frames at each decoder step" where the number of of multiple frame is the reduction factor, `r`.  We originally interpretted this as predicting non-sequential frames during each decoding step `t`.  Thus were using the following scheme (with `r=5`) during decoding.
+        
+        
+        t    frame numbers
+        -----------------------
+        0    [ 0  1  2  3  4]
+        1    [ 5  6  7  8  9]
+        2    [10 11 12 13 14]
+        ...
+        
+      After much experimentation, we were unable to have our model learning anything useful.  We then switched to predicting `r` sequential frames during each decoding step.
+          
+        
+        t    frame numbers
+        -----------------------
+        0    [ 0  1  2  3  4]
+        1    [ 5  6  7  8  9]
+        2    [10 11 12 13 14]
+        ...
+        
+      With this setup we noticed improvements in the attention and have since kept it.
+
+  * **Perhaps the most important hyperparemeter is the learning rate.**  With  an intitial learning rate of 0.002 we were never able to learn a clean attention, the loss would frequently explode.  With an initial learning rate of 0.001 we were able to learn a clean attention and train for much longer get decernable words during synthesis.
+  * Check other TTS models such as [DCTTS](https://github.com/kyubyong/dc_tts) or [deep voice 3](https://github.com/kyubyong/deepvoice3).
+
+### Differences from the original paper
+
+  * We use Noam style warmup and decay.
+  * We implement gradient clipping.
+  * Our training batches are bucketed.
+  * After the last convolutional layer of the post-processing net, we apply an affine transformation to bring the dimensionality up to 128 from 80, because the required dimensionality of highway net is 128.  In the original highway networks paper, the authors mention that the dimensionality of the input can also be increased with zero-padding, but they used the affine transformation in all their experiments.  We do not know what the Tacotron authors chose.
+
+
+## Papers that referenced this repo
+
+  * [Efficiently Trainable Text-to-Speech System Based on Deep Convolutional Networks with Guided Attention](https://arxiv.org/abs/1710.08969)
+  * [Storytime - End to end neural networks for audiobooks](http://web.stanford.edu/class/cs224s/reports/Pierce_Freeman.pdf)
+  
+  Jan. 2018,
+  Kyubyong Park & [Tommy Mulc](tmulc18@gmail.com)
