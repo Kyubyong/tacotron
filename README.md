@@ -24,8 +24,8 @@ Nick's audiobooks are additionally used to see if the model can learn even with 
 
 ## Training
   * STEP 0. Download [LJ Speech Dataset](https://keithito.com/LJ-Speech-Dataset/) or prepare your own data.
-  * STEP 1. Adjust hyper parameters in `hyperparams.py`.
-  * STEP 2. Run `python train.py`.
+  * STEP 1. Adjust hyper parameters in `hyperparams.py`. (If you want to do preprocessing, set `prepro` True`.
+  * STEP 2. Run `python train.py`. (If you set `prepro` True, run `python prepro.py` first)
   * STEP 3. Run `python eval.py` regularly during training.
 
 ## Sample Synthesis
