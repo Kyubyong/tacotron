@@ -6,6 +6,10 @@ https://www.github.com/kyubyong/tacotron
 '''
 class Hyperparams:
     '''Hyper parameters'''
+    
+    # pipeline
+    prepro = False  # if True, run `python prepro.py` first before running `python train.py`.
+
     vocab = "PE abcdefghijklmnopqrstuvwxyz'.?" # P: Padding E: End of Sentence
 
     # data
