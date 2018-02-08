@@ -87,7 +87,17 @@ def get_batch():
 
         # Parse
         text = tf.decode_raw(text, tf.int32)  # (None,)
-        fname, mel, mag = tf.py_func(load_spectrograms, [fpath], [tf.string, tf.float32, tf.float32])  # (None, n_mels)
+
+        if hp.prepro:
+            def _load_spectrograms(fpath):
+                fname = os.path.basename(fpath)
+                mel = "mels/{}".format(fname.replace("wav", "npy"))
+                mag = "mags/{}".format(fname.replace("wav", "npy"))
+                return fname, np.load(mel), np.load(mag)
+
+            fname, mel, mag = tf.py_func(_load_spectrograms, [fpath], [tf.string, tf.float32, tf.float32])
+        else:
+            fname, mel, mag = tf.py_func(load_spectrograms, [fpath], [tf.string, tf.float32, tf.float32])  # (None, n_mels)
 
         # Add shape information
         fname.set_shape(())
