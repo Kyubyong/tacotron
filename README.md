@@ -18,11 +18,11 @@
 We train the model on three different speech datasets.
   1. [LJ Speech Dataset](https://keithito.com/LJ-Speech-Dataset/)
   2. [Nick Offerman's Audiobooks](https://www.audible.com.au/search?searchNarrator=Nick+Offerman)
-  3. [The World English Bible](https://kaggle.com/bryanpark/the-world-english-bible)
+  3. [The World English Bible](https://www.kaggle.com/bryanpark/the-world-english-bible-speech-dataset)
 
 LJ Speech Dataset is recently widely used as a benchmark dataset in the TTS task because it is publicly available. It has 24 hours of reasonable quality samples.
 Nick's audiobooks are additionally used to see if the model can learn even with less data, variable speech samples. They are 18 hours long.
-[The World English Bible](https://en.wikipedia.org/wiki/World_English_Bible) is a public domain update of the American Standard Version of 1901 into modern English. Its original audios are freely available [here](http://www.audiotreasure.com/webindex.htm). Kyubyong split each chapter by verse manually and aligned the segmented audio clips to the text. They are 72 hours in total. You can download them at [Kaggle Datasets](https://kaggle.com/bryanpark/the-world-english-bible).
+[The World English Bible](https://en.wikipedia.org/wiki/World_English_Bible) is a public domain update of the American Standard Version of 1901 into modern English. Its original audios are freely available [here](http://www.audiotreasure.com/webindex.htm). Kyubyong split each chapter by verse manually and aligned the segmented audio clips to the text. They are 72 hours in total. You can download them at [Kaggle Datasets](https://www.kaggle.com/bryanpark/the-world-english-bible-speech-dataset).
 
 ## Training
   * STEP 0. Download [LJ Speech Dataset](https://keithito.com/LJ-Speech-Dataset/) or prepare your own data.
