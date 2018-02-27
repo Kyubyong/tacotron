@@ -11,16 +11,18 @@
 
 ## Data
 
+<img src="https://upload.wikimedia.org/wikipedia/commons/7/72/World_English_Bible_Cover.jpg" height="200" align="right">
 <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Nick_Offerman_at_UMBC_%28cropped%29.jpg/440px-Nick_Offerman_at_UMBC_%28cropped%29.jpg" height="200" align="right">
 <img src="https://image.shutterstock.com/z/stock-vector-lj-letters-four-colors-in-abstract-background-logo-design-identity-in-circle-alphabet-letter-418687846.jpg" height="200" align="right">
 
-We train the model on two different speech datasets.
+We train the model on three different speech datasets.
   1. [LJ Speech Dataset](https://keithito.com/LJ-Speech-Dataset/)
   2. [Nick Offerman's Audiobooks](https://www.audible.com.au/search?searchNarrator=Nick+Offerman)
- 
+  3. [The World English Bible](https://kaggle.com/bryanpark/the-world-english-bible)
+
 LJ Speech Dataset is recently widely used as a benchmark dataset in the TTS task because it is publicly available. It has 24 hours of reasonable quality samples.
 Nick's audiobooks are additionally used to see if the model can learn even with less data, variable speech samples. They are 18 hours long.
-
+[The World English Bible](https://en.wikipedia.org/wiki/World_English_Bible) is a public domain update of the American Standard Version of 1901 into modern English. Its original audios are freely available [here](http://www.audiotreasure.com/webindex.htm). Kyubyong split each chapter by verse manually and aligned the segmented audio clips to the text. They are 72 hours in total. You can download them at [Kaggle Datasets](https://kaggle.com/bryanpark/the-world-english-bible).
 
 ## Training
   * STEP 0. Download [LJ Speech Dataset](https://keithito.com/LJ-Speech-Dataset/) or prepare your own data.
@@ -47,6 +49,7 @@ We generate speech samples based on [Harvard Sentences](http://www.cs.columbia.e
 
   * [LJ at 200k steps](https://soundcloud.com/kyubyong-park/sets/tacotron_lj_200k)
   * [Nick at 215k steps](https://soundcloud.com/kyubyong-park/sets/tacotron_nick_215k)
+  * [WEB at 183k steps](https://soundcloud.com/kyubyong-park/sets/tacotron_web_183k)
 
 ## Notes
 
