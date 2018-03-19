@@ -51,6 +51,11 @@ We generate speech samples based on [Harvard Sentences](http://www.cs.columbia.e
   * [Nick at 215k steps](https://soundcloud.com/kyubyong-park/sets/tacotron_nick_215k)
   * [WEB at 183k steps](https://soundcloud.com/kyubyong-park/sets/tacotron_web_183k)
 
+## Pretrained Files
+  * Keep in mind 200k steps may not be enough for the best performance.
+  * [LJ 200k](https://www.dropbox.com/s/8kxa3xh2vfna3s9/LJ_logdir.zip?dl=0)
+  * [WEB 200k](https://www.dropbox.com/s/g7m6xhd350ozkz7/WEB_logdir.zip?dl=0)
+  
 ## Notes
 
   * It's important to monitor the attention plots during training.  If the attention plots look good (alignment looks linear), and then they look bad (the plots will look similar to what they looked like in the begining of training), then training has gone awry and most likely will need to be restarted from a checkpoint where the attention looked good, because we've learned that it's unlikely that the loss will ever recover.  This deterioration of attention will correspond with a spike in the loss.
