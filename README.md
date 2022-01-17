@@ -60,7 +60,7 @@ We generate speech samples based on [Harvard Sentences](http://www.cs.columbia.e
 
   * It's important to monitor the attention plots during training.  If the attention plots look good (alignment looks linear), and then they look bad (the plots will look similar to what they looked like in the begining of training), then training has gone awry and most likely will need to be restarted from a checkpoint where the attention looked good, because we've learned that it's unlikely that the loss will ever recover.  This deterioration of attention will correspond with a spike in the loss.
 
-  * In the original paper, the authors said, "An important trick we discovered was predicting multiple, non-overlapping output frames at each decoder step" where the number of of multiple frame is the reduction factor, `r`.  We originally interpretted this as predicting non-sequential frames during each decoding step `t`.  Thus were using the following scheme (with `r=5`) during decoding.
+  * In the original paper, the authors said, "An important trick we discovered was predicting multiple, non-overlapping output frames at each decoder step" where the number of multiple frame is the reduction factor, `r`.  We originally interpreted this as predicting non-sequential frames during each decoding step `t`.  Thus were using the following scheme (with `r=5`) during decoding.
         
         
         t    frame numbers
